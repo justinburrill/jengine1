@@ -31,3 +31,27 @@ pub fn move_is_valid(position: &mut Position, themove: &Move) -> bool {
 pub fn apply_move(position: &Position, themove: &Move) -> Position {
     todo!()
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::moves::*;
+
+    fn test_moves_from_back_rank() {
+        assert_eq!(
+            Square::moves_from_back_rank(&Square::A1, &PieceColour::White),
+            0
+        );
+        assert_eq!(
+            Square::moves_from_back_rank(&Square::A1, &PieceColour::Black),
+            7
+        );
+        assert_eq!(
+            Square::moves_from_back_rank(&Square::E4, &PieceColour::White),
+            3
+        );
+        assert_eq!(
+            Square::moves_from_back_rank(&Square::G6, &PieceColour::Black),
+            2
+        );
+    }
+}
