@@ -1,147 +1,155 @@
 use crate::*;
 
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum Square {
     A1 = 0,
-    A2 = 1,
-    A3 = 2,
-    A4 = 3,
-    A5 = 4,
-    A6 = 5,
-    A7 = 6,
-    A8 = 7,
-    B1 = 8,
+    B1 = 1,
+    C1 = 2,
+    D1 = 3,
+    E1 = 4,
+    F1 = 5,
+    G1 = 6,
+    H1 = 7,
+    A2 = 8,
     B2 = 9,
-    B3 = 10,
-    B4 = 11,
-    B5 = 12,
-    B6 = 13,
-    B7 = 14,
-    B8 = 15,
-    C1 = 16,
-    C2 = 17,
+    C2 = 10,
+    D2 = 11,
+    E2 = 12,
+    F2 = 13,
+    G2 = 14,
+    H2 = 15,
+    A3 = 16,
+    B3 = 17,
     C3 = 18,
-    C4 = 19,
-    C5 = 20,
-    C6 = 21,
-    C7 = 22,
-    C8 = 23,
-    D1 = 24,
-    D2 = 25,
-    D3 = 26,
+    D3 = 19,
+    E3 = 20,
+    F3 = 21,
+    G3 = 22,
+    H3 = 23,
+    A4 = 24,
+    B4 = 25,
+    C4 = 26,
     D4 = 27,
-    D5 = 28,
-    D6 = 29,
-    D7 = 30,
-    D8 = 31,
-    E1 = 32,
-    E2 = 33,
-    E3 = 34,
-    E4 = 35,
+    E4 = 28,
+    F4 = 29,
+    G4 = 30,
+    H4 = 31,
+    A5 = 32,
+    B5 = 33,
+    C5 = 34,
+    D5 = 35,
     E5 = 36,
-    E6 = 37,
-    E7 = 38,
-    E8 = 39,
-    F1 = 40,
-    F2 = 41,
-    F3 = 42,
-    F4 = 43,
-    F5 = 44,
+    F5 = 37,
+    G5 = 38,
+    H5 = 39,
+    A6 = 40,
+    B6 = 41,
+    C6 = 42,
+    D6 = 43,
+    E6 = 44,
     F6 = 45,
-    F7 = 46,
-    F8 = 47,
-    G1 = 48,
-    G2 = 49,
-    G3 = 50,
-    G4 = 51,
-    G5 = 52,
-    G6 = 53,
+    G6 = 46,
+    H6 = 47,
+    A7 = 48,
+    B7 = 49,
+    C7 = 50,
+    D7 = 51,
+    E7 = 52,
+    F7 = 53,
     G7 = 54,
-    G8 = 55,
-    H1 = 56,
-    H2 = 57,
-    H3 = 58,
-    H4 = 59,
-    H5 = 60,
-    H6 = 61,
-    H7 = 62,
+    H7 = 55,
+    A8 = 56,
+    B8 = 57,
+    C8 = 58,
+    D8 = 59,
+    E8 = 60,
+    F8 = 61,
+    G8 = 62,
     H8 = 63,
 }
 
 impl Square {
+    /// Returns (x, y) from white's bottom left corner, (1, 1)-based
+    pub fn to_coords(&self) -> (usize, usize) {
+        let board_size = 8;
+        let idx = *self as usize;
+        let y = idx / board_size;
+        let x = idx - (y * board_size);
+        (x + 1, y + 1)
+    }
+
     pub fn from_usize(int: usize) -> Square {
         match int {
             0 => Square::A1,
-            1 => Square::A2,
-            2 => Square::A3,
-            3 => Square::A4,
-            4 => Square::A5,
-            5 => Square::A6,
-            6 => Square::A7,
-            7 => Square::A8,
-            8 => Square::B1,
+            1 => Square::B1,
+            2 => Square::C1,
+            3 => Square::D1,
+            4 => Square::E1,
+            5 => Square::F1,
+            6 => Square::G1,
+            7 => Square::H1,
+            8 => Square::A2,
             9 => Square::B2,
-            10 => Square::B3,
-            11 => Square::B4,
-            12 => Square::B5,
-            13 => Square::B6,
-            14 => Square::B7,
-            15 => Square::B8,
-            16 => Square::C1,
-            17 => Square::C2,
+            10 => Square::C2,
+            11 => Square::D2,
+            12 => Square::E2,
+            13 => Square::F2,
+            14 => Square::G2,
+            15 => Square::H2,
+            16 => Square::A3,
+            17 => Square::B3,
             18 => Square::C3,
-            19 => Square::C4,
-            20 => Square::C5,
-            21 => Square::C6,
-            22 => Square::C7,
-            23 => Square::C8,
-            24 => Square::D1,
-            25 => Square::D2,
-            26 => Square::D3,
+            19 => Square::D3,
+            20 => Square::E3,
+            21 => Square::F3,
+            22 => Square::G3,
+            23 => Square::H3,
+            24 => Square::A4,
+            25 => Square::B4,
+            26 => Square::C4,
             27 => Square::D4,
-            28 => Square::D5,
-            29 => Square::D6,
-            30 => Square::D7,
-            31 => Square::D8,
-            32 => Square::E1,
-            33 => Square::E2,
-            34 => Square::E3,
-            35 => Square::E4,
+            28 => Square::E4,
+            29 => Square::F4,
+            30 => Square::G4,
+            31 => Square::H4,
+            32 => Square::A5,
+            33 => Square::B5,
+            34 => Square::C5,
+            35 => Square::D5,
             36 => Square::E5,
-            37 => Square::E6,
-            38 => Square::E7,
-            39 => Square::E8,
-            40 => Square::F1,
-            41 => Square::F2,
-            42 => Square::F3,
-            43 => Square::F4,
-            44 => Square::F5,
+            37 => Square::F5,
+            38 => Square::G5,
+            39 => Square::H5,
+            40 => Square::A6,
+            41 => Square::B6,
+            42 => Square::C6,
+            43 => Square::D6,
+            44 => Square::E6,
             45 => Square::F6,
-            46 => Square::F7,
-            47 => Square::F8,
-            48 => Square::G1,
-            49 => Square::G2,
-            50 => Square::G3,
-            51 => Square::G4,
-            52 => Square::G5,
-            53 => Square::G6,
+            46 => Square::G6,
+            47 => Square::H6,
+            48 => Square::A7,
+            49 => Square::B7,
+            50 => Square::C7,
+            51 => Square::D7,
+            52 => Square::E7,
+            53 => Square::F7,
             54 => Square::G7,
-            55 => Square::G8,
-            56 => Square::H1,
-            57 => Square::H2,
-            58 => Square::H3,
-            59 => Square::H4,
-            60 => Square::H5,
-            61 => Square::H6,
-            62 => Square::H7,
+            55 => Square::H7,
+            56 => Square::A8,
+            57 => Square::B8,
+            58 => Square::C8,
+            59 => Square::D8,
+            60 => Square::E8,
+            61 => Square::F8,
+            62 => Square::G8,
             63 => Square::H8,
             _ => panic!("Invalid square index passed: {}", int),
         }
     }
 
-    pub fn opposite_mirror(&self) -> Square {
+    pub fn mirror_opposite(&self) -> Square {
         if (*self as usize) < 32 {
             todo!()
         } else {
@@ -150,18 +158,24 @@ impl Square {
     }
 
     pub fn pivot_opposite(&self) -> Square {
-        Square::from_usize((*self as usize) - 63)
+        todo!()
     }
 
     pub fn moves_from_back_rank(&self, colour: &PieceColour) -> usize {
         match colour {
             PieceColour::White => *self as usize / 8,
-            PieceColour::Black => self.pivot_opposite().moves_from_back_rank(&colour.other()),
+            PieceColour::Black => self
+                .pivot_opposite()
+                .moves_from_back_rank(&PieceColour::White),
         }
     }
 
     pub fn distance_from_center(square: &Square) -> usize {
         todo!()
+    }
+
+    pub fn exists(idx: isize) -> bool {
+        idx >=0 && idx <= 63
     }
 }
 
@@ -240,9 +254,7 @@ impl Display for Square {
     }
 }
 
-
-
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, PartialOrd, Ord)]
 pub enum PieceKind {
     Rook,
     Knight,
@@ -265,7 +277,7 @@ impl PieceKind {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug, PartialOrd, Ord)]
 pub enum PieceColour {
     White,
     Black,
@@ -280,13 +292,12 @@ impl PieceColour {
     }
 }
 
-
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Piece {
     pub kind: PieceKind,
     pub colour: PieceColour,
 }
+
 
 impl Piece {
     pub fn to_letter(&self) -> Option<char> {
@@ -298,5 +309,64 @@ impl Piece {
             PieceKind::Knight => Some('N'),
             PieceKind::Pawn => None,
         }
+    }
+}
+
+impl PartialOrd for Piece {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match self.colour.partial_cmp(&other.colour) {
+            Some(core::cmp::Ordering::Equal) => {}
+            ord => return ord,
+        }
+        self.kind.partial_cmp(&other.kind)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::square::*;
+
+    #[test]
+    fn mirror_and_pivot() {
+        assert_eq!(Square::A1.pivot_opposite(), Square::H8);
+        assert_eq!(Square::A2.pivot_opposite(), Square::H7);
+        assert_eq!(Square::B2.pivot_opposite(), Square::G7);
+
+        assert_eq!(Square::B2.mirror_opposite(), Square::B7);
+        assert_eq!(Square::B7.mirror_opposite(), Square::B2);
+        assert_eq!(Square::H7.mirror_opposite(), Square::H2);
+        assert_eq!(Square::A1.mirror_opposite(), Square::A8);
+    }
+
+    #[test]
+    fn moves_from_back_rank() {
+        assert_eq!(
+            Square::moves_from_back_rank(&Square::A1, &PieceColour::White),
+            0
+        );
+        assert_eq!(
+            Square::moves_from_back_rank(&Square::A1, &PieceColour::Black),
+            7
+        );
+        assert_eq!(
+            Square::moves_from_back_rank(&Square::E4, &PieceColour::White),
+            3
+        );
+        assert_eq!(
+            Square::moves_from_back_rank(&Square::G6, &PieceColour::Black),
+            2
+        );
+    }
+
+    #[test]
+    fn coords() {
+        assert_eq!(Square::to_coords(&Square::A1), (1, 1));
+        assert_eq!(Square::to_coords(&Square::H1), (8, 1));
+        assert_eq!(Square::to_coords(&Square::A8), (1, 8));
+        assert_eq!(Square::to_coords(&Square::H8), (8, 8));
+        assert_eq!(Square::to_coords(&Square::D4), (4, 4));
+        assert_eq!(Square::to_coords(&Square::C6), (3, 6));
+        assert_eq!(Square::to_coords(&Square::E6), (5, 6));
+        assert_eq!(Square::to_coords(&Square::F7), (6, 7));
     }
 }

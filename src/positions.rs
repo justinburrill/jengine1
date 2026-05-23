@@ -42,6 +42,10 @@ impl Position {
             SquareValue::Occupied(_) => acc + 1,
         })
     }
+
+    pub fn square_is_occupied(&self, square: Square) -> bool {
+        self.squares[square as usize].is_occupied()
+    }
 }
 
 impl PartialOrd for PositionEval {

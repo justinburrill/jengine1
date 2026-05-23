@@ -2,7 +2,7 @@ use crate::moves;
 use crate::*;
 
 pub fn is_king_in_check(position: &Position, which_king: &PieceColour) -> bool {
-    let available_moves = moves::find_available_moves(position);
+    let available_moves = moves::find_avail_moves(position);
     let enemy_king_square = position.find_piece(&Piece {
         kind: PieceKind::King,
         colour: *which_king,
@@ -37,7 +37,7 @@ pub fn check_for_mate(position: &Position) -> Option<FinishedState> {
 }
 
 pub fn check_if_mated(position: &Position, which_king: &PieceColour) -> bool {
-    is_king_in_check(position, which_king) && moves::find_available_moves_for(position, which_king).len() == 0
+    is_king_in_check(position, which_king) && moves::find_avail_moves_for_player(position, which_king).len() == 0
 }
 
 /// Raw difference in piece points
@@ -97,7 +97,7 @@ pub fn evaluate_adjusted_material_difference(position: &Position) -> f32 {
 /// Returns the best move and the resulting position
 pub fn find_best_move(position: &Position, depth: usize) -> (Move, PositionEval, Position) {
     let mut positions: Vec<(Move, Position)> = vec![];
-    let moves = moves::find_available_moves(position);
+    let moves = moves::find_avail_moves(position);
     for themove in moves {
         let mut nextpos = position.clone();
         moves::apply_move(&mut nextpos, &themove);
