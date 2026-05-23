@@ -2,11 +2,12 @@ use crate::*;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Position {
-    pub white_to_move: bool,
-    pub full_move_count: i32, // what move are we on
-    pub half_moves_since_capture_or_pawn_advance: i32,
-    pub castle_availability: Vec<CastleAvailability>,
     pub squares: [SquareValue; 64],
+    pub white_to_move: bool,
+    pub castle_availability: Vec<CastleAvailability>,
+    pub en_passant_square: Option<Square>,
+    pub half_moves_since_capture_or_pawn_advance: i32,
+    pub full_move_count: i32, // what move are we on
 }
 
 impl Position {

@@ -11,6 +11,7 @@ macro_rules! starting_position {
                 CastleAvailability::BlackKingside,
                 CastleAvailability::BlackQueenside,
             ],
+            en_passant_square: None,
             squares: [
                 wr!(),
                 wn!(),

@@ -35,6 +35,7 @@ pub fn parse_fen_pieces(input: &str) -> [SquareValue; 64] {
 
 pub fn parse(input: &str) -> Position {
     let sections: Vec<&str> = input.split_whitespace().collect();
+    let squares = parse_fen_pieces(sections[0]);
     let white_to_move: bool = match sections[1] {
         "w" => true,
         "b" => false,
@@ -43,12 +44,6 @@ pub fn parse(input: &str) -> Position {
             sections[1]
         ),
     };
-    let full_move_count: i32 = sections[5]
-        .parse()
-        .expect("Recieved invalid number in FEN full move count");
-    let half_moves_since_capture_or_pawn_advance: i32 = sections[4]
-        .parse()
-        .expect("Recieved invalid number in FEN half move count");
     let mut castle_availability: Vec<CastleAvailability> = vec![];
     for ch in sections[2].chars() {
         castle_availability.push(match ch {
@@ -63,13 +58,20 @@ pub fn parse(input: &str) -> Position {
             ),
         });
     }
-    let squares = parse_fen_pieces(sections[0]);
+    let en_passant_square = Square::from_str(sections[3]);
+    let half_moves_since_capture_or_pawn_advance: i32 = sections[4]
+        .parse()
+        .expect("Recieved invalid number in FEN half move count");
+    let full_move_count: i32 = sections[5]
+        .parse()
+        .expect("Recieved invalid number in FEN full move count");
     return Position {
-        white_to_move,
-        full_move_count,
-        half_moves_since_capture_or_pawn_advance,
-        castle_availability,
         squares,
+        white_to_move,
+        castle_availability,
+        en_passant_square,
+        half_moves_since_capture_or_pawn_advance,
+        full_move_count,
     };
 }
 
@@ -161,6 +163,7 @@ mod tests {
                 bn!(),
                 br!(),
             ],
+            en_passant_square: None,
         };
         let fen = "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1";
         assert_eq!(expected, fen::parse(fen));
@@ -174,6 +177,7 @@ mod tests {
             white_to_move: false,
             full_move_count: 5,
             half_moves_since_capture_or_pawn_advance: 3,
+            en_passant_square: None,
             castle_availability: vec![
                 CastleAvailability::BlackKingside,
                 CastleAvailability::BlackQueenside,

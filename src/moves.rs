@@ -4,7 +4,7 @@ pub fn get_squares_with_pieces(position: &Position, for_player: &PieceColour) ->
     let mut out: Vec<Square> = vec![];
     for (i, value) in position.squares.iter().enumerate() {
         match value {
-            SquareValue::Empty => {}
+            SquareValue::Empty => continue,
             SquareValue::Occupied(Piece { kind: _, colour }) => {
                 if colour == for_player {
                     out.push(Square::from_usize(i));
@@ -30,6 +30,7 @@ pub fn find_avail_moves_for_player(position: &Position, to_move: &PieceColour) -
     moves
 }
 
+/// Finds moves that the piece would be able to make, doesn't look for king in check, etc.
 pub fn find_avail_moves_for_piece(
     position: &Position,
     location_of_piece: Square,
@@ -38,61 +39,85 @@ pub fn find_avail_moves_for_piece(
     use PieceKind::*;
     let sqvalue = position.squares[location_of_piece as usize];
     let mut moves: Vec<Move> = vec![];
+    let my_kind;
+    let my_colour;
     if let SquareValue::Occupied(Piece { kind, colour }) = sqvalue {
-        let my_kind = kind;
-        let my_colour = colour;
-        match kind {
-            Pawn => {
-                let forward = match colour {
-                    White => 1,
-                    Black => -1,
-                };
-                todo!()
-            }
-            King => {
-                let start_idx: isize = location_of_piece as isize;
-                for idx in vec![
-                    start_idx + 1,
-                    start_idx - 1,
-                    start_idx + 8,
-                    start_idx - 8,
-                    start_idx + 7,
-                    start_idx - 7,
-                    start_idx + 9,
-                    start_idx - 9,
-                ] {
-                    if !Square::exists(idx) {
-                        continue;
-                    }
-                    let target_sq = position.squares[idx as usize];
-                    // FIXME: what if the piece is covered?
-                    if let SquareValue::Occupied(Piece { kind, colour }) = target_sq {
-                        if colour == my_colour {
-                            continue;
-                        }
-                    }
-                    moves.push(Move {
-                        piece: Piece {
-                            kind: my_kind,
-                            colour: my_colour,
-                        },
-                        from_square: location_of_piece,
-                        to_square: Square::from_usize(idx as usize),
-                    });
-                }
-            }
-            _ => todo!(),
-        }
+        my_kind = kind;
+        my_colour = colour;
     } else {
         return None;
     };
+
+    let start_idx: isize = location_of_piece as isize;
+    let mut move_to_index = |idx: isize| {
+        moves.push(Move {
+            from_square: location_of_piece,
+            to_square: Square::from_usize(idx as usize),
+        });
+    };
+    let mut move_to_indices = |idxs: Vec<isize>| {
+        for idx in idxs {
+            if !Square::exists(idx) {
+                continue;
+            }
+            let target_sq = position.squares[idx as usize];
+            if let SquareValue::Occupied(Piece { kind, colour }) = target_sq {
+                if colour == my_colour {
+                    continue;
+                }
+            }
+            move_to_index(idx);
+        }
+    };
+    match my_kind {
+        Pawn => {
+            let forward_offset = match my_colour {
+                White => 1,
+                Black => -1,
+            };
+            let capture_offsets = match my_colour {
+                White => [7, 9],
+                Black => [-7, -9],
+            };
+            let push_square = start_idx + (8 * forward_offset);
+            move_to_index(push_square);
+            for o in capture_offsets {
+                //  TODO: en passant
+                if position.squares[(start_idx + o) as usize]
+                    .is_occupied_by_colour(my_colour.other())
+                {
+                    move_to_index(start_idx + o)
+                }
+            }
+        }
+        King => move_to_indices(vec![
+            start_idx + 1,
+            start_idx - 1,
+            start_idx + 8,
+            start_idx - 8,
+            start_idx + 7,
+            start_idx - 7,
+            start_idx + 9,
+            start_idx - 9,
+        ]),
+        Knight => move_to_indices(vec![
+            start_idx + 15,
+            start_idx + 17,
+            start_idx - 15,
+            start_idx - 17,
+            start_idx + 10,
+            start_idx - 10,
+            start_idx + 6,
+            start_idx - 6,
+        ]),
+        _ => todo!(),
+    }
     return Some(moves);
 }
 
 
 pub fn move_is_valid(position: &Position, themove: &Move) -> bool {
-    let piece_is_there =
-        position.squares[themove.from_square as usize] == SquareValue::Occupied(themove.piece);
+    let piece_is_there = position.squares[themove.from_square as usize].is_occupied();
     let piece_can_move_like_that = find_avail_moves_for_piece(position, themove.from_square)
         .expect("tried to find available moves for a piece that doesn't exist")
         .contains(themove);
@@ -102,8 +127,12 @@ pub fn move_is_valid(position: &Position, themove: &Move) -> bool {
 /// Assumes that the move is valid
 pub fn apply_move(position: &Position, themove: &Move) -> Position {
     let mut new_pos = (*position).clone();
+    let piece = match new_pos.squares[themove.from_square as usize] {
+        SquareValue::Occupied(p) => p,
+        _ => panic!("Tried to apply invalid move, piece not present at from_square"),
+    };
     new_pos.squares[themove.from_square as usize] = no!();
-    new_pos.squares[themove.to_square as usize] = SquareValue::Occupied(themove.piece);
+    new_pos.squares[themove.to_square as usize] = SquareValue::Occupied(piece);
     new_pos
 }
 
@@ -115,10 +144,6 @@ mod tests {
         assert!(move_is_valid(
             &starting_position!(),
             &Move {
-                piece: Piece {
-                    kind: PieceKind::Pawn,
-                    colour: PieceColour::White
-                },
                 from_square: Square::E2,
                 to_square: Square::E4
             }
@@ -146,7 +171,6 @@ mod tests {
         ]
         .iter()
         .map(|sq| Move {
-            piece,
             from_square,
             to_square: *sq,
         })

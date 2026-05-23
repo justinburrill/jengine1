@@ -11,7 +11,6 @@ pub fn is_king_in_check(position: &Position, which_king: &PieceColour) -> bool {
         return false;
     }
     for Move {
-        piece,
         from_square,
         to_square,
     } in available_moves
@@ -72,7 +71,7 @@ pub fn evaluate_adjusted_material_difference(position: &Position) -> f32 {
                         let base = kind.piece_value() as f32;
                         let squares_pushed = 6 - square.moves_from_back_rank(colour);
                         let distance_bonus = 0.15 * ( squares_pushed as f32 );
-                        let center_bonus = 0.1 * (Square::moves_from_center(&square) as f32);
+                        let center_bonus = 0.1 * (square.moves_from_center() as f32);
                         base + distance_bonus + center_bonus
                     },
                     PieceKind::Knight => {

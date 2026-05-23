@@ -1,5 +1,4 @@
 use crate::*;
-
 #[derive(Clone, Copy, PartialEq, Eq, Debug, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum Square {
@@ -149,10 +148,29 @@ impl Square {
         }
     }
 
-    pub fn mirror_opposite(&self) -> Square {
-        if (*self as usize) < 32 { todo!() } else { todo!() }
+    pub fn from_str(string: &str) -> Option<Square> {
+        if string.len() != 2 {
+            return None;
+        }
+        let mut chars = string.chars();
+        let col_s: char = chars.next().unwrap();
+        let row_s: char = chars.next().unwrap();
+        if !('a'..='h').contains(&col_s) || !('1'..='8').contains(&row_s) {
+            return None;
+        }
+        todo!()
     }
 
+    /// Returns the square across the board.
+    pub fn mirror_opposite(&self) -> Square {
+        if (*self as usize) < 32 {
+            todo!()
+        } else {
+            todo!()
+        }
+    }
+
+    /// Returns square that is a 180deg rotation from this square.
     pub fn pivot_opposite(&self) -> Square {
         todo!()
     }
@@ -160,11 +178,13 @@ impl Square {
     pub fn moves_from_back_rank(&self, colour: &PieceColour) -> usize {
         match colour {
             PieceColour::White => *self as usize / 8,
-            PieceColour::Black => self.pivot_opposite().moves_from_back_rank(&PieceColour::White),
+            PieceColour::Black => self
+                .pivot_opposite()
+                .moves_from_back_rank(&PieceColour::White),
         }
     }
 
-    // TODO: fix
+    /// TODO: fix
     pub fn moves_from_center(&self) -> usize {
         let (x, y) = self.to_coords();
         let dx = (x as isize - 4).abs();
@@ -175,6 +195,7 @@ impl Square {
     pub fn exists(idx: isize) -> bool {
         idx >= 0 && idx <= 63
     }
+
 }
 
 impl Display for Square {
@@ -337,10 +358,22 @@ mod tests {
 
     #[test]
     fn moves_from_back_rank() {
-        assert_eq!(Square::moves_from_back_rank(&Square::A1, &PieceColour::White), 0);
-        assert_eq!(Square::moves_from_back_rank(&Square::A1, &PieceColour::Black), 7);
-        assert_eq!(Square::moves_from_back_rank(&Square::E4, &PieceColour::White), 3);
-        assert_eq!(Square::moves_from_back_rank(&Square::G6, &PieceColour::Black), 2);
+        assert_eq!(
+            Square::moves_from_back_rank(&Square::A1, &PieceColour::White),
+            0
+        );
+        assert_eq!(
+            Square::moves_from_back_rank(&Square::A1, &PieceColour::Black),
+            7
+        );
+        assert_eq!(
+            Square::moves_from_back_rank(&Square::E4, &PieceColour::White),
+            3
+        );
+        assert_eq!(
+            Square::moves_from_back_rank(&Square::G6, &PieceColour::Black),
+            2
+        );
     }
 
     #[test]
