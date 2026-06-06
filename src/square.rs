@@ -150,11 +150,7 @@ impl Square {
     }
 
     pub fn mirror_opposite(&self) -> Square {
-        if (*self as usize) < 32 {
-            todo!()
-        } else {
-            todo!()
-        }
+        if (*self as usize) < 32 { todo!() } else { todo!() }
     }
 
     pub fn pivot_opposite(&self) -> Square {
@@ -164,18 +160,19 @@ impl Square {
     pub fn moves_from_back_rank(&self, colour: &PieceColour) -> usize {
         match colour {
             PieceColour::White => *self as usize / 8,
-            PieceColour::Black => self
-                .pivot_opposite()
-                .moves_from_back_rank(&PieceColour::White),
+            PieceColour::Black => self.pivot_opposite().moves_from_back_rank(&PieceColour::White),
         }
     }
 
-    pub fn distance_from_center(square: &Square) -> usize {
-        todo!()
+    pub fn distance_from_center(&self) -> usize {
+        let (x, y) = self.to_coords();
+        let dx = (x as isize - 4).abs();
+        let dy = (y as isize - 4).abs();
+        std::cmp::max(dx, dy) as usize
     }
 
     pub fn exists(idx: isize) -> bool {
-        idx >=0 && idx <= 63
+        idx >= 0 && idx <= 63
     }
 }
 
@@ -298,7 +295,6 @@ pub struct Piece {
     pub colour: PieceColour,
 }
 
-
 impl Piece {
     pub fn to_letter(&self) -> Option<char> {
         match self.kind {
@@ -340,33 +336,33 @@ mod tests {
 
     #[test]
     fn moves_from_back_rank() {
-        assert_eq!(
-            Square::moves_from_back_rank(&Square::A1, &PieceColour::White),
-            0
-        );
-        assert_eq!(
-            Square::moves_from_back_rank(&Square::A1, &PieceColour::Black),
-            7
-        );
-        assert_eq!(
-            Square::moves_from_back_rank(&Square::E4, &PieceColour::White),
-            3
-        );
-        assert_eq!(
-            Square::moves_from_back_rank(&Square::G6, &PieceColour::Black),
-            2
-        );
+        assert_eq!(Square::moves_from_back_rank(&Square::A1, &PieceColour::White), 0);
+        assert_eq!(Square::moves_from_back_rank(&Square::A1, &PieceColour::Black), 7);
+        assert_eq!(Square::moves_from_back_rank(&Square::E4, &PieceColour::White), 3);
+        assert_eq!(Square::moves_from_back_rank(&Square::G6, &PieceColour::Black), 2);
     }
 
     #[test]
     fn coords() {
-        assert_eq!(Square::to_coords(&Square::A1), (1, 1));
-        assert_eq!(Square::to_coords(&Square::H1), (8, 1));
-        assert_eq!(Square::to_coords(&Square::A8), (1, 8));
-        assert_eq!(Square::to_coords(&Square::H8), (8, 8));
-        assert_eq!(Square::to_coords(&Square::D4), (4, 4));
-        assert_eq!(Square::to_coords(&Square::C6), (3, 6));
-        assert_eq!(Square::to_coords(&Square::E6), (5, 6));
-        assert_eq!(Square::to_coords(&Square::F7), (6, 7));
+        assert_eq!(Square::A1.to_coords(), (1, 1));
+        assert_eq!(Square::H1.to_coords(), (8, 1));
+        assert_eq!(Square::A8.to_coords(), (1, 8));
+        assert_eq!(Square::H8.to_coords(), (8, 8));
+        assert_eq!(Square::D4.to_coords(), (4, 4));
+        assert_eq!(Square::C6.to_coords(), (3, 6));
+        assert_eq!(Square::E6.to_coords(), (5, 6));
+        assert_eq!(Square::F7.to_coords(), (6, 7));
+    }
+
+    #[test]
+    fn moves_from_center() {
+        assert_eq!(Square::E4.distance_from_center(), 0);
+        assert_eq!(Square::E5.distance_from_center(), 0);
+        assert_eq!(Square::D4.distance_from_center(), 0);
+        assert_eq!(Square::D5.distance_from_center(), 0);
+        assert_eq!(Square::H1.distance_from_center(), 3);
+        assert_eq!(Square::H8.distance_from_center(), 3);
+        assert_eq!(Square::A1.distance_from_center(), 3);
+        assert_eq!(Square::A8.distance_from_center(), 3);
     }
 }

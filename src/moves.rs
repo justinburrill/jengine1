@@ -89,6 +89,7 @@ pub fn find_avail_moves_for_piece(
     return Some(moves);
 }
 
+
 pub fn move_is_valid(position: &Position, themove: &Move) -> bool {
     let piece_is_there =
         position.squares[themove.from_square as usize] == SquareValue::Occupied(themove.piece);

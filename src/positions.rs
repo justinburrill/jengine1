@@ -33,7 +33,7 @@ impl Position {
     }
 
     pub fn apply_move(&mut self, themove: &Move) {
-        todo!()
+        *self = apply_move(&self, themove);
     }
 
     pub fn count_pieces(&self) -> usize {
