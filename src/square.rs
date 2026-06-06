@@ -164,7 +164,8 @@ impl Square {
         }
     }
 
-    pub fn distance_from_center(&self) -> usize {
+    // TODO: fix
+    pub fn moves_from_center(&self) -> usize {
         let (x, y) = self.to_coords();
         let dx = (x as isize - 4).abs();
         let dy = (y as isize - 4).abs();
@@ -356,13 +357,13 @@ mod tests {
 
     #[test]
     fn moves_from_center() {
-        assert_eq!(Square::E4.distance_from_center(), 0);
-        assert_eq!(Square::E5.distance_from_center(), 0);
-        assert_eq!(Square::D4.distance_from_center(), 0);
-        assert_eq!(Square::D5.distance_from_center(), 0);
-        assert_eq!(Square::H1.distance_from_center(), 3);
-        assert_eq!(Square::H8.distance_from_center(), 3);
-        assert_eq!(Square::A1.distance_from_center(), 3);
-        assert_eq!(Square::A8.distance_from_center(), 3);
+        assert_eq!(Square::E4.moves_from_center(), 0);
+        assert_eq!(Square::E5.moves_from_center(), 0);
+        assert_eq!(Square::D4.moves_from_center(), 0);
+        assert_eq!(Square::D5.moves_from_center(), 0);
+        assert_eq!(Square::H1.moves_from_center(), 3);
+        assert_eq!(Square::H8.moves_from_center(), 3);
+        assert_eq!(Square::A1.moves_from_center(), 3);
+        assert_eq!(Square::A8.moves_from_center(), 3);
     }
 }
