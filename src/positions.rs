@@ -37,7 +37,7 @@ impl Position {
         *self = apply_move(&self, themove);
     }
 
-    pub fn count_pieces(&self) -> usize {
+    pub fn count_pieces(&self) -> u8 {
         self.squares.iter().fold(0, |acc, sq| match sq {
             SquareValue::Empty => acc,
             SquareValue::Occupied(_) => acc + 1,

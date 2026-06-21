@@ -82,9 +82,11 @@ pub fn find_avail_moves_for_piece(
             let push_square = start_idx + (8 * forward_offset);
             move_to_index(push_square);
             for o in capture_offsets {
-                //  TODO: en passant
                 if position.squares[(start_idx + o) as usize]
                     .is_occupied_by_colour(my_colour.other())
+                    || position
+                        .en_passant_square
+                        .is_some_and(|sq| sq == Square::from_isize(start_idx + 0))
                 {
                     move_to_index(start_idx + o)
                 }
@@ -114,7 +116,6 @@ pub fn find_avail_moves_for_piece(
     }
     return Some(moves);
 }
-
 
 pub fn move_is_valid(position: &Position, themove: &Move) -> bool {
     let piece_is_there = position.squares[themove.from_square as usize].is_occupied();

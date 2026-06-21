@@ -14,28 +14,6 @@ pub use positions::*;
 pub mod square;
 pub use square::*;
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
-pub enum SquareValue {
-    #[default]
-    Empty,
-    Occupied(Piece),
-}
-
-impl SquareValue {
-    pub fn is_occupied(&self) -> bool {
-        match self {
-            SquareValue::Occupied(_) => true,
-            SquareValue::Empty => false,
-        }
-    }
-
-    pub fn is_occupied_by_colour(&self, colour: PieceColour) -> bool {
-        match self {
-            SquareValue::Occupied(p) => p.colour == colour,
-            SquareValue::Empty => false,
-        }
-    }
-}
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Move {

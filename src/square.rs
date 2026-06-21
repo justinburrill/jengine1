@@ -70,12 +70,16 @@ pub enum Square {
 
 impl Square {
     /// Returns (x, y) from white's bottom left corner, (1, 1)-based
-    pub fn to_coords(&self) -> (usize, usize) {
+    pub fn to_coords(&self) -> (u8, u8) {
         let board_size = 8;
-        let idx = *self as usize;
+        let idx = *self as u8;
         let y = idx / board_size;
         let x = idx - (y * board_size);
         (x + 1, y + 1)
+    }
+
+    pub fn from_coords(col: u8, row: u8) -> Square {
+        Square::from_usize(((row * 8) + col) as usize)
     }
 
     pub fn from_usize(int: usize) -> Square {
@@ -148,6 +152,10 @@ impl Square {
         }
     }
 
+    pub fn from_isize(int: isize) -> Square {
+        Square::from_usize(int.try_into().unwrap())
+    }
+
     pub fn from_str(string: &str) -> Option<Square> {
         if string.len() != 2 {
             return None;
@@ -155,47 +163,58 @@ impl Square {
         let mut chars = string.chars();
         let col_s: char = chars.next().unwrap();
         let row_s: char = chars.next().unwrap();
-        if !('a'..='h').contains(&col_s) || !('1'..='8').contains(&row_s) {
+        if !('a'..='h').contains(&col_s)
+            || !('A'..='H').contains(&col_s)
+            || !('1'..='8').contains(&row_s)
+        {
             return None;
         }
-        todo!()
+        let col: u8 = if col_s.is_ascii_uppercase() {
+            (col_s as u8) - ('A' as u8) + 1
+        } else {
+            col_s as u8 - ('a' as u8) + 1
+        };
+        let row: u8 = (row_s as u8) - ('0' as u8);
+        return Some(Square::from_coords(col, row));
     }
 
     /// Returns the square across the board.
     pub fn mirror_opposite(&self) -> Square {
-        if (*self as usize) < 32 {
-            todo!()
-        } else {
-            todo!()
-        }
+        let (x, y) = self.to_coords();
+        Square::from_coords(x, opposite_row(y))
     }
 
     /// Returns square that is a 180deg rotation from this square.
     pub fn pivot_opposite(&self) -> Square {
-        todo!()
+        let (x, y) = self.to_coords();
+        Square::from_coords(opposite_row(x), opposite_row(y))
     }
 
-    pub fn moves_from_back_rank(&self, colour: &PieceColour) -> usize {
+    pub fn moves_from_back_rank(&self, colour: &PieceColour) -> u8 {
         match colour {
-            PieceColour::White => *self as usize / 8,
+            PieceColour::White => *self as u8 / 8,
             PieceColour::Black => self
                 .pivot_opposite()
                 .moves_from_back_rank(&PieceColour::White),
         }
     }
 
-    /// TODO: fix
-    pub fn moves_from_center(&self) -> usize {
-        let (x, y) = self.to_coords();
-        let dx = (x as isize - 4).abs();
-        let dy = (y as isize - 4).abs();
-        std::cmp::max(dx, dy) as usize
+    pub fn moves_from_center(&self) -> u8 {
+        let (mut x, mut y) = self.to_coords();
+        if x > 4 {
+            x -= 1
+        }
+        if y > 4 {
+            y -= 1
+        }
+        let dx = (x as i8 - 4).abs();
+        let dy = (y as i8 - 4).abs();
+        std::cmp::max(dx, dy) as u8
     }
 
     pub fn exists(idx: isize) -> bool {
         idx >= 0 && idx <= 63
     }
-
 }
 
 impl Display for Square {
@@ -273,6 +292,33 @@ impl Display for Square {
     }
 }
 
+fn opposite_row(row: u8) -> u8 {
+    9 - row
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum SquareValue {
+    #[default]
+    Empty,
+    Occupied(Piece),
+}
+
+impl SquareValue {
+    pub fn is_occupied(&self) -> bool {
+        match self {
+            SquareValue::Occupied(_) => true,
+            SquareValue::Empty => false,
+        }
+    }
+
+    pub fn is_occupied_by_colour(&self, colour: PieceColour) -> bool {
+        match self {
+            SquareValue::Occupied(p) => p.colour == colour,
+            SquareValue::Empty => false,
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, PartialOrd, Ord)]
 pub enum PieceKind {
     Rook,
@@ -284,7 +330,7 @@ pub enum PieceKind {
 }
 
 impl PieceKind {
-    pub fn piece_value(self: &PieceKind) -> usize {
+    pub fn piece_value(self: &PieceKind) -> u8 {
         match self {
             PieceKind::King => 0,
             PieceKind::Queen => 9,
@@ -385,6 +431,7 @@ mod tests {
         assert_eq!(Square::D4.to_coords(), (4, 4));
         assert_eq!(Square::C6.to_coords(), (3, 6));
         assert_eq!(Square::E6.to_coords(), (5, 6));
+        assert_eq!(Square::E4.to_coords(), (5, 4));
         assert_eq!(Square::F7.to_coords(), (6, 7));
     }
 
@@ -398,5 +445,19 @@ mod tests {
         assert_eq!(Square::H8.moves_from_center(), 3);
         assert_eq!(Square::A1.moves_from_center(), 3);
         assert_eq!(Square::A8.moves_from_center(), 3);
+    }
+
+    #[test]
+    fn from_str() {
+        assert_eq!(Square::from_str("A1"), Some(Square::A1));
+        assert_eq!(Square::from_str("A2"), Some(Square::A2));
+        assert_eq!(Square::from_str("h6"), Some(Square::H6));
+        assert_eq!(Square::from_str("G8"), Some(Square::G8));
+        assert_eq!(Square::from_str("d4"), Some(Square::D4));
+        assert_eq!(Square::from_str("f3"), Some(Square::F3));
+        assert_eq!(Square::from_str(""), None);
+        assert_eq!(Square::from_str("A11"), None);
+        assert_eq!(Square::from_str("A9"), None);
+        assert_eq!(Square::from_str("I5"), None);
     }
 }
