@@ -79,77 +79,15 @@ impl Square {
     }
 
     pub fn from_coords(col: u8, row: u8) -> Square {
-        Square::from_usize(((row * 8) + col) as usize)
+        Square::from_u8(((row - 1) * 8) + col - 1)
     }
 
     pub fn from_usize(int: usize) -> Square {
-        match int {
-            0 => Square::A1,
-            1 => Square::B1,
-            2 => Square::C1,
-            3 => Square::D1,
-            4 => Square::E1,
-            5 => Square::F1,
-            6 => Square::G1,
-            7 => Square::H1,
-            8 => Square::A2,
-            9 => Square::B2,
-            10 => Square::C2,
-            11 => Square::D2,
-            12 => Square::E2,
-            13 => Square::F2,
-            14 => Square::G2,
-            15 => Square::H2,
-            16 => Square::A3,
-            17 => Square::B3,
-            18 => Square::C3,
-            19 => Square::D3,
-            20 => Square::E3,
-            21 => Square::F3,
-            22 => Square::G3,
-            23 => Square::H3,
-            24 => Square::A4,
-            25 => Square::B4,
-            26 => Square::C4,
-            27 => Square::D4,
-            28 => Square::E4,
-            29 => Square::F4,
-            30 => Square::G4,
-            31 => Square::H4,
-            32 => Square::A5,
-            33 => Square::B5,
-            34 => Square::C5,
-            35 => Square::D5,
-            36 => Square::E5,
-            37 => Square::F5,
-            38 => Square::G5,
-            39 => Square::H5,
-            40 => Square::A6,
-            41 => Square::B6,
-            42 => Square::C6,
-            43 => Square::D6,
-            44 => Square::E6,
-            45 => Square::F6,
-            46 => Square::G6,
-            47 => Square::H6,
-            48 => Square::A7,
-            49 => Square::B7,
-            50 => Square::C7,
-            51 => Square::D7,
-            52 => Square::E7,
-            53 => Square::F7,
-            54 => Square::G7,
-            55 => Square::H7,
-            56 => Square::A8,
-            57 => Square::B8,
-            58 => Square::C8,
-            59 => Square::D8,
-            60 => Square::E8,
-            61 => Square::F8,
-            62 => Square::G8,
-            63 => Square::H8,
-            _ => panic!("Invalid square index passed: {}", int),
-        }
+        square_from_num!(int)
+    }
+
+    pub fn from_u8(int: u8) -> Square {
+        square_from_num!(int)
     }
 
     pub fn from_isize(int: isize) -> Square {
@@ -163,10 +101,7 @@ impl Square {
         let mut chars = string.chars();
         let col_s: char = chars.next().unwrap();
         let row_s: char = chars.next().unwrap();
-        if !('a'..='h').contains(&col_s)
-            || !('A'..='H').contains(&col_s)
-            || !('1'..='8').contains(&row_s)
-        {
+        if !(('a'..='h').contains(&col_s) || ('A'..='H').contains(&col_s)) || !('1'..='8').contains(&row_s) {
             return None;
         }
         let col: u8 = if col_s.is_ascii_uppercase() {
@@ -193,9 +128,7 @@ impl Square {
     pub fn moves_from_back_rank(&self, colour: &PieceColour) -> u8 {
         match colour {
             PieceColour::White => *self as u8 / 8,
-            PieceColour::Black => self
-                .pivot_opposite()
-                .moves_from_back_rank(&PieceColour::White),
+            PieceColour::Black => self.pivot_opposite().moves_from_back_rank(&PieceColour::White),
         }
     }
 
@@ -292,6 +225,7 @@ impl Display for Square {
     }
 }
 
+#[inline]
 fn opposite_row(row: u8) -> u8 {
     9 - row
 }
@@ -404,22 +338,10 @@ mod tests {
 
     #[test]
     fn moves_from_back_rank() {
-        assert_eq!(
-            Square::moves_from_back_rank(&Square::A1, &PieceColour::White),
-            0
-        );
-        assert_eq!(
-            Square::moves_from_back_rank(&Square::A1, &PieceColour::Black),
-            7
-        );
-        assert_eq!(
-            Square::moves_from_back_rank(&Square::E4, &PieceColour::White),
-            3
-        );
-        assert_eq!(
-            Square::moves_from_back_rank(&Square::G6, &PieceColour::Black),
-            2
-        );
+        assert_eq!(Square::moves_from_back_rank(&Square::A1, &PieceColour::White), 0);
+        assert_eq!(Square::moves_from_back_rank(&Square::A1, &PieceColour::Black), 7);
+        assert_eq!(Square::moves_from_back_rank(&Square::E4, &PieceColour::White), 3);
+        assert_eq!(Square::moves_from_back_rank(&Square::G6, &PieceColour::Black), 2);
     }
 
     #[test]
