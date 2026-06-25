@@ -23,18 +23,32 @@ pub fn find_avail_moves_for_player(position: &Position, to_move: &PieceColour) -
     let mut moves: Vec<Move> = vec![];
     for sq in get_squares_with_pieces(position, &position.whos_move()) {
         moves.extend(
-            find_avail_moves_for_piece(position, sq)
-                .expect("tried to find available moves for a piece that doesn't exist"),
+            find_avail_moves_for_piece(position, sq).expect("tried to find available moves for a piece that doesn't exist"),
         );
     }
     moves
 }
 
+fn is_edge_square(square: usize) -> bool {
+    square < 8 || square > 55 || square % 8 == 1 || square % 8 == 7
+}
+
+pub fn get_move_pattern(piece: PieceKind) -> Vec<isize> {
+    use PieceKind::*;
+    match piece {
+        King => vec![1, -1, 8, -8, 7, -7, 9, -9],
+        Knight => vec![15, 17, -15, -17, 10, -10, 6, -6],
+        Queen => {
+            let mut r = get_move_pattern(Rook);
+            r.extend(get_move_pattern(Bishop));
+            r
+        }
+        _ => todo!(),
+    }
+}
+
 /// Finds moves that the piece would be able to make, doesn't look for king in check, etc.
-pub fn find_avail_moves_for_piece(
-    position: &Position,
-    location_of_piece: Square,
-) -> Option<Vec<Move>> {
+pub fn find_avail_moves_for_piece(position: &Position, location_of_piece: Square) -> Option<Vec<Move>> {
     use PieceColour::*;
     use PieceKind::*;
     let sqvalue = position.squares[location_of_piece as usize];
@@ -49,13 +63,13 @@ pub fn find_avail_moves_for_piece(
     };
 
     let start_idx: isize = location_of_piece as isize;
-    let mut move_to_index = |idx: isize| {
+    let mut add_index = |idx: isize| {
         moves.push(Move {
             from_square: location_of_piece,
             to_square: Square::from_usize(idx as usize),
         });
     };
-    let mut move_to_indices = |idxs: Vec<isize>| {
+    let mut add_indices = |idxs: Vec<isize>| {
         for idx in idxs {
             if !Square::exists(idx) {
                 continue;
@@ -66,7 +80,7 @@ pub fn find_avail_moves_for_piece(
                     continue;
                 }
             }
-            move_to_index(idx);
+            add_index(idx);
         }
     };
     match my_kind {
@@ -80,39 +94,18 @@ pub fn find_avail_moves_for_piece(
                 Black => [-7, -9],
             };
             let push_square = start_idx + (8 * forward_offset);
-            move_to_index(push_square);
+            add_index(push_square);
             for o in capture_offsets {
-                if position.squares[(start_idx + o) as usize]
-                    .is_occupied_by_colour(my_colour.other())
+                if position.squares[(start_idx + o) as usize].is_occupied_by_colour(my_colour.other())
                     || position
                         .en_passant_square
                         .is_some_and(|sq| sq == Square::from_isize(start_idx + 0))
                 {
-                    move_to_index(start_idx + o)
+                    add_index(start_idx + o)
                 }
             }
         }
-        King => move_to_indices(vec![
-            start_idx + 1,
-            start_idx - 1,
-            start_idx + 8,
-            start_idx - 8,
-            start_idx + 7,
-            start_idx - 7,
-            start_idx + 9,
-            start_idx - 9,
-        ]),
-        Knight => move_to_indices(vec![
-            start_idx + 15,
-            start_idx + 17,
-            start_idx - 15,
-            start_idx - 17,
-            start_idx + 10,
-            start_idx - 10,
-            start_idx + 6,
-            start_idx - 6,
-        ]),
-        _ => todo!(),
+        _ => add_indices(get_move_pattern(my_kind)),
     }
     return Some(moves);
 }

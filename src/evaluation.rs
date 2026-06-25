@@ -2,6 +2,7 @@ use crate::moves;
 use crate::*;
 
 pub fn is_king_in_check(position: &Position, which_king: &PieceColour) -> bool {
+    // FIXME: will be really inefficient
     let available_moves = moves::find_avail_moves(position);
     let enemy_king_square = position.find_piece(&Piece {
         kind: PieceKind::King,
