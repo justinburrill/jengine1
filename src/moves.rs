@@ -1,4 +1,7 @@
 use crate::*;
+use std::cmp::min;
+
+const BOARD_SIZE: usize = 8;
 
 pub fn get_squares_with_pieces(position: &Position, for_player: &PieceColour) -> Vec<Square> {
     let mut out: Vec<Square> = vec![];
@@ -30,14 +33,43 @@ pub fn find_avail_moves_for_player(position: &Position, to_move: &PieceColour) -
 }
 
 fn is_edge_square(square: usize) -> bool {
-    square < 8 || square > 55 || square % 8 == 1 || square % 8 == 7
+    square < BOARD_SIZE
+        || square > (BOARD_SIZE * BOARD_SIZE) - BOARD_SIZE - 1
+        || square % BOARD_SIZE == 0
+        || square % BOARD_SIZE == 7
+}
+
+fn get_steps_in_direction(square: usize, step_x: isize, step_y: isize) -> Vec<isize> {
+    let size = BOARD_SIZE as isize;
+    let (x, y) = Square::from_usize(square).to_coords();
+    let max_x_steps = if step_x < 0 { x } else { BOARD_SIZE as u8 - x };
+    let max_y_steps = 0;
+
+    let max_steps = min(max_x_steps, max_y_steps);
+    let mut out: Vec<isize> = Vec::new();
+    out.reserve_exact(max_steps as usize);
+    let diff: isize = step_y * size + step_x;
+    for i in 1..=max_steps {
+        out.push(i as isize * diff);
+    }
+    return out;
 }
 
 pub fn get_move_pattern(piece: PieceKind) -> Vec<isize> {
     use PieceKind::*;
+    let size = BOARD_SIZE as isize;
     match piece {
-        King => vec![1, -1, 8, -8, 7, -7, 9, -9],
-        Knight => vec![15, 17, -15, -17, 10, -10, 6, -6],
+        King => vec![1, -1, size, -size, size - 1, -size - 1, size + 1, -size + 1],
+        Knight => vec![
+            2 * size + 1,
+            2 * size - 1,
+            -2 * size + 1,
+            -2 * size - 1,
+            size + 2,
+            size - 2,
+            -size + 2,
+            -size - 2,
+        ],
         Queen => {
             let mut r = get_move_pattern(Rook);
             r.extend(get_move_pattern(Bishop));
@@ -93,7 +125,7 @@ pub fn find_avail_moves_for_piece(position: &Position, location_of_piece: Square
                 White => [7, 9],
                 Black => [-7, -9],
             };
-            let push_square = start_idx + (8 * forward_offset);
+            let push_square = start_idx + (BOARD_SIZE as isize * forward_offset);
             add_index(push_square);
             for o in capture_offsets {
                 if position.squares[(start_idx + o) as usize].is_occupied_by_colour(my_colour.other())
