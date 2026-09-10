@@ -84,7 +84,6 @@ fn get_steps_in_direction(start_square: Square, step_x: isize, step_y: isize) ->
 
 fn get_king_moves(square: Square) -> Vec<isize> {
     let s = BOARD_SIZE as isize;
-    // let out = Vec::with_capacity(8);
     match (
         square.is_left_edge(),
         square.is_right_edge(),
@@ -96,11 +95,16 @@ fn get_king_moves(square: Square) -> Vec<isize> {
         (false, true, false, false) => vec![-1, s, -s, s - 1, -s + 1],
         (false, false, true, false) => vec![1, -1, -s, -s - 1, -s + 1],
         (false, false, false, true) => vec![1, -1, s, s - 1, s + 1],
+        (true, false, true, false) => vec![1, -s, -s + 1],
         (true, false, false, true) => vec![1, s, s + 1],
+        (false, true, true, false) => vec![-1, -s, -s + 1],
+        (false, true, false, true) => vec![-1, s, s - 1],
         (l,r,t,b) => panic!("Invalid edge combination somehow: {}, {}, {}, {}", l, r, t, b),
     }
 }
 
+
+// TODO: needs fixing, will go off the board
 fn get_knight_moves(start_square: Square) -> Vec<isize> {
     let size = BOARD_SIZE as isize;
     vec![
@@ -119,7 +123,6 @@ fn get_knight_moves(start_square: Square) -> Vec<isize> {
 pub fn get_move_pattern(piece: PieceKind, start_square: Square) -> Vec<isize> {
     use PieceKind::*;
     let size = BOARD_SIZE as isize;
-    // TODO: knight and king need fixing, will go off the board
     match piece {
         King => get_king_moves(start_square),
         Knight => get_knight_moves(start_square),
