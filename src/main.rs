@@ -1,20 +1,18 @@
 #![allow(dead_code, unused_variables)]
 use clap::Parser;
-use std::fmt::{Display, Debug};
+use std::fmt::{Debug, Display};
 use std::io::{self, BufRead};
 
-mod math;
 pub mod evaluation;
 pub mod fen;
 pub mod macros;
+mod math;
 pub mod moves;
 pub use moves::*;
 pub mod positions;
 pub use positions::*;
 pub mod square;
 pub use square::*;
-
-
 
 #[derive(Clone, PartialEq, Eq, Debug, clap::Subcommand)]
 enum EngineMode {
