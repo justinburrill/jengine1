@@ -94,31 +94,26 @@ pub fn evaluate_adjusted_material_difference(position: &Position) -> f32 {
     return (white_score - black_score).try_into().unwrap();
 }
 
-/// Returns the best move and the resulting position
-pub fn find_best_move(position: &Position, depth: usize) -> (Move, PositionEval, Position) {
-    let mut positions: Vec<(Move, Position)> = vec![];
-    let moves = moves::find_avail_moves(position);
-    for themove in moves {
-        let mut nextpos = position.clone();
-        moves::apply_move(&mut nextpos, &themove);
-        positions.push((themove, nextpos));
-    }
-    positions
-        .into_iter()
-        .map(|(move_, pos)| (move_, evaluate_position(&pos, depth), pos))
-        .max_by_key(|(_, eval, _)| *eval)
-        .expect("Passed no moves to find_best_move")
-}
-
 pub fn evaluate_position(position: &Position, depth: usize) -> PositionEval {
     match check_for_mate(position) {
         None => {
             if depth == 0 {
                 // couldn't figure out a mate
-                PositionEval::Undecided(evaluate_raw_material_difference(position) as f32)
+                PositionEval::Undecided(dbg!(evaluate_raw_material_difference(position) as f32))
             } else {
-                let (move_, eval, resulting_pos) = find_best_move(position, depth);
-                return evaluate_position(&resulting_pos, depth - 1);
+                let moves = moves::find_avail_moves(position);
+                let mut positions: Vec<(Move, Position)> = Vec::with_capacity(moves.len());
+                for move_ in moves {
+                    let mut nextpos = position.clone();
+                    moves::apply_move(&mut nextpos, &move_);
+                    positions.push((move_, nextpos));
+                }
+                let (move_, eval, resulting_pos) = positions
+                    .into_iter()
+                    .map(|(move_, pos)| (move_, evaluate_position(&pos, depth - 1), pos))
+                    .max_by_key(|(_, eval, _)| *eval)
+                    .expect("Passed no moves to find_best_move");
+                return eval;
             }
         }
         Some(state) => PositionEval::GameFinished(state),
@@ -241,9 +236,7 @@ mod tests {
         }
     }
 
-    mod position_extras {
-
-    }
+    mod position_extras {}
 
     mod shallow_evaluation {
         use crate::{PieceColour, evaluation, fen};
