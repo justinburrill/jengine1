@@ -67,51 +67,82 @@ pub fn find_avail_moves_for_player(position: &Position, to_move: &PieceColour) -
     moves
 }
 
-fn is_edge_square(square: usize) -> bool {
-    square < BOARD_SIZE
-        || square > (BOARD_SIZE * BOARD_SIZE) - BOARD_SIZE - 1
-        || square % BOARD_SIZE == 0
-        || square % BOARD_SIZE == 7
-}
-
-fn get_steps_in_direction(square: usize, step_x: isize, step_y: isize) -> Vec<isize> {
+fn get_steps_in_direction(start_square: Square, step_x: isize, step_y: isize) -> Vec<isize> {
     let size = BOARD_SIZE as isize;
-    let (x, y) = Square::from_usize(square).to_coords();
+    let (x, y) = start_square.to_coords();
     let max_x_steps = if step_x < 0 { x } else { BOARD_SIZE as u8 - x };
-    let max_y_steps = 0;
-
+    let max_y_steps = if step_y < 0 { y } else { BOARD_SIZE as u8 - y };
     let max_steps = min(max_x_steps, max_y_steps);
-    let mut out: Vec<isize> = Vec::new();
-    out.reserve_exact(max_steps as usize);
     let diff: isize = step_y * size + step_x;
+    let mut out: Vec<isize> = Vec::with_capacity(max_steps as usize);
+
     for i in 1..=max_steps {
         out.push(i as isize * diff);
     }
     return out;
 }
 
-pub fn get_move_pattern(piece: PieceKind) -> Vec<isize> {
+fn get_king_moves(square: Square) -> Vec<isize> {
+    let s = BOARD_SIZE as isize;
+    // let out = Vec::with_capacity(8);
+    match (
+        square.is_left_edge(),
+        square.is_right_edge(),
+        square.is_top_edge(),
+        square.is_bottom_edge(),
+    ) {
+        (false, false, false, false) => vec![1, -1, s, -s, s - 1, -s - 1, s + 1, -s + 1],
+        (true, false, false, false) => vec![1, s, -s, -s - 1, s + 1],
+        (false, true, false, false) => vec![-1, s, -s, s - 1, -s + 1],
+        (false, false, true, false) => vec![1, -1, -s, -s - 1, -s + 1],
+        (false, false, false, true) => vec![1, -1, s, s - 1, s + 1],
+        (true, false, false, true) => vec![1, s, s + 1],
+        (l,r,t,b) => panic!("Invalid edge combination somehow: {}, {}, {}, {}", l, r, t, b),
+    }
+}
+
+fn get_knight_moves(start_square: Square) -> Vec<isize> {
+    let size = BOARD_SIZE as isize;
+    vec![
+        2 * size + 1,
+        2 * size - 1,
+        -2 * size + 1,
+        -2 * size - 1,
+        size + 2,
+        size - 2,
+        -size + 2,
+        -size - 2,
+    ]
+}
+
+/// Not pawns, colour agnostic
+pub fn get_move_pattern(piece: PieceKind, start_square: Square) -> Vec<isize> {
     use PieceKind::*;
     let size = BOARD_SIZE as isize;
     // TODO: knight and king need fixing, will go off the board
     match piece {
-        King => vec![1, -1, size, -size, size - 1, -size - 1, size + 1, -size + 1],
-        Knight => vec![
-            2 * size + 1,
-            2 * size - 1,
-            -2 * size + 1,
-            -2 * size - 1,
-            size + 2,
-            size - 2,
-            -size + 2,
-            -size - 2,
-        ],
-        Queen => {
-            let mut r = get_move_pattern(Rook);
-            r.extend(get_move_pattern(Bishop));
+        King => get_king_moves(start_square),
+        Knight => get_knight_moves(start_square),
+        Rook => {
+            let mut r = get_steps_in_direction(start_square, 1, 0);
+            r.extend(get_steps_in_direction(start_square, 0, 1));
+            r.extend(get_steps_in_direction(start_square, -1, 0));
+            r.extend(get_steps_in_direction(start_square, 0, -1));
             r
         }
-        _ => todo!(),
+        Bishop => {
+            let mut r = get_steps_in_direction(start_square, 1, 1);
+            r.extend(get_steps_in_direction(start_square, -1, 1));
+            r.extend(get_steps_in_direction(start_square, 1, -1));
+            r.extend(get_steps_in_direction(start_square, -1, -1));
+            r
+        }
+        Queen => {
+            let mut r = get_move_pattern(Rook, start_square);
+            r.extend(get_move_pattern(Bishop, start_square));
+            r
+        }
+        _ => panic!("Piece {:?} passed to get_move_pattern", piece),
     }
 }
 
@@ -140,8 +171,23 @@ pub fn find_avail_moves_for_piece(
             to_square: Square::from_usize(idx as usize),
         });
     };
-    let mut add_indices = |idxs: Vec<isize>| {
+    let add_indices = |idxs: &Vec<isize>| {
         for idx in idxs {
+            if !Square::exists(*idx) {
+                panic!("Tried to add square index {} as valid move.", idx)
+            }
+            let target_sq = position.squares[*idx as usize];
+            if let SquareValue::Occupied(Piece { kind, colour }) = target_sq {
+                if colour == my_colour {
+                    continue;
+                }
+            }
+            add_index(*idx);
+        }
+    };
+    let mut add_offsets = |offsets: &Vec<isize>| {
+        for offset in offsets {
+            let idx = start_idx + offset;
             if !Square::exists(idx) {
                 continue;
             }
@@ -166,8 +212,14 @@ pub fn find_avail_moves_for_piece(
             };
             let push_square = start_idx + (BOARD_SIZE as isize * forward_offset);
             add_index(push_square);
+            // push 2 squares from starting position
+            if location_of_piece.is_starting_square(my_kind, my_colour) {
+                let double_push_square = start_idx + 2 * (BOARD_SIZE as isize * forward_offset);
+                add_index(double_push_square);
+            }
             for o in capture_offsets {
-                if position.squares[(start_idx + o) as usize].is_occupied_by_colour(my_colour.other())
+                if position.squares[(start_idx + o) as usize]
+                    .is_occupied_by_colour(my_colour.other())
                     || position
                         .en_passant_square
                         .is_some_and(|sq| sq == Square::from_isize(start_idx + 0))

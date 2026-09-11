@@ -4,19 +4,14 @@ use crate::*;
 pub fn is_king_in_check(position: &Position, which_king: &PieceColour) -> bool {
     // FIXME: will be really inefficient
     let available_moves = moves::find_avail_moves(position);
-    let enemy_king_square = position.find_piece(&Piece {
-        kind: PieceKind::King,
-        colour: *which_king,
-    });
-    if enemy_king_square.is_none() {
-        return false;
-    }
-    for Move {
-        from_square,
-        to_square,
-    } in available_moves
-    {
-        if to_square == enemy_king_square.unwrap() {
+    let enemy_king_square = position
+        .find_piece(&Piece {
+            kind: PieceKind::King,
+            colour: *which_king,
+        })
+        .expect("No enemy king on board");
+    for Move { from_square, to_square } in available_moves {
+        if to_square == enemy_king_square {
             return true;
         }
     }
@@ -40,7 +35,7 @@ pub fn check_if_mated(position: &Position, which_king: &PieceColour) -> bool {
     is_king_in_check(position, which_king) && moves::find_avail_moves_for_player(position, which_king).len() == 0
 }
 
-/// Raw difference in piece points
+/// Raw difference in piece points (white - black)
 pub fn evaluate_raw_material_difference(position: &Position) -> isize {
     let mut white_score = 0;
     let mut black_score = 0;
@@ -71,15 +66,16 @@ pub fn evaluate_adjusted_material_difference(position: &Position) -> f32 {
                     PieceKind::Pawn => {
                         let base = kind.piece_value() as f32;
                         let squares_pushed = 6 - square.moves_from_back_rank(colour);
-                        let distance_bonus = 0.15 * ( squares_pushed as f32 );
+                        let distance_bonus = 0.15 * (squares_pushed as f32);
                         let center_bonus = 0.1 * (square.moves_from_center() as f32);
                         base + distance_bonus + center_bonus
-                    },
+                    }
                     PieceKind::Knight => {
                         let base = kind.piece_value() as f32;
                         let center_bonus = 0.3 * (Square::moves_from_center(&square) as f32);
                         base + center_bonus
                     }
+                    // TODO:
                     _ => kind.piece_value() as f32,
                 };
 
