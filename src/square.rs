@@ -1,4 +1,5 @@
 use crate::*;
+
 #[derive(Clone, Copy, PartialEq, Eq, Debug, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum Square {
@@ -71,14 +72,18 @@ pub enum Square {
 impl Square {
     /// Returns (x, y) from white's bottom left corner, (1, 1)-based
     pub fn to_coords(&self) -> (u8, u8) {
-        let board_size = 8;
+        let board_size = moves::BOARD_SIZE as u8;
         let idx = *self as u8;
         let y = idx / board_size;
         let x = idx - (y * board_size);
         (x + 1, y + 1)
     }
 
-    pub fn from_coords(col: u8, row: u8) -> Square {
+    pub fn from_coords(col: usize, row: usize) -> Square {
+        Square::from_usize(((row - 1) * 8) + col - 1)
+    }
+
+    pub fn from_coords_u8(col: u8, row: u8) -> Square {
         Square::from_u8(((row - 1) * 8) + col - 1)
     }
 
@@ -101,7 +106,9 @@ impl Square {
         let mut chars = string.chars();
         let col_s: char = chars.next().unwrap();
         let row_s: char = chars.next().unwrap();
-        if !(('a'..='h').contains(&col_s) || ('A'..='H').contains(&col_s)) || !('1'..='8').contains(&row_s) {
+        if !(('a'..='h').contains(&col_s) || ('A'..='H').contains(&col_s))
+            || !('1'..='8').contains(&row_s)
+        {
             return None;
         }
         let col: u8 = if col_s.is_ascii_uppercase() {
@@ -110,25 +117,27 @@ impl Square {
             col_s as u8 - ('a' as u8) + 1
         };
         let row: u8 = (row_s as u8) - ('0' as u8);
-        return Some(Square::from_coords(col, row));
+        return Some(Square::from_coords_u8(col, row));
     }
 
     /// Returns the square across the board.
     pub fn mirror_opposite(&self) -> Square {
         let (x, y) = self.to_coords();
-        Square::from_coords(x, opposite_row(y))
+        Square::from_coords_u8(x, opposite_row(y))
     }
 
     /// Returns square that is a 180deg rotation from this square.
     pub fn pivot_opposite(&self) -> Square {
         let (x, y) = self.to_coords();
-        Square::from_coords(opposite_row(x), opposite_row(y))
+        Square::from_coords_u8(opposite_row(x), opposite_row(y))
     }
 
     pub fn moves_from_back_rank(&self, colour: &PieceColour) -> u8 {
         match colour {
             PieceColour::White => *self as u8 / 8,
-            PieceColour::Black => self.pivot_opposite().moves_from_back_rank(&PieceColour::White),
+            PieceColour::Black => self
+                .pivot_opposite()
+                .moves_from_back_rank(&PieceColour::White),
         }
     }
 
@@ -147,6 +156,47 @@ impl Square {
 
     pub fn exists(idx: isize) -> bool {
         idx >= 0 && idx <= 63
+    }
+
+    pub fn is_starting_square(&self, piece: PieceKind, colour: PieceColour) -> bool {
+        if colour == PieceColour::Black {
+            return self
+                .mirror_opposite()
+                .is_starting_square(piece, PieceColour::White);
+        } else {
+            return match piece {
+                PieceKind::Pawn => self >= &Square::A2 && self <= &Square::H2,
+                PieceKind::Rook => self == &Square::A1 || self == &Square::H1,
+                PieceKind::Knight => self == &Square::B1 || self == &Square::G1,
+                PieceKind::Bishop => self == &Square::C1 || self == &Square::F1,
+                PieceKind::Queen => self == &Square::D1,
+                PieceKind::King => self == &Square::E1,
+            };
+        }
+    }
+
+    pub fn is_edge_square(&self) -> bool {
+        self.is_left_edge() || self.is_right_edge() || self.is_top_edge() || self.is_bottom_edge()
+    }
+
+    #[inline]
+    pub fn is_left_edge(&self) -> bool {
+        (*self as usize) % BOARD_SIZE == 0
+    }
+
+    #[inline]
+    pub fn is_right_edge(&self) -> bool {
+        (*self as usize) % BOARD_SIZE == 7
+    }
+
+    #[inline]
+    pub fn is_top_edge(&self) -> bool {
+        (*self as usize) > (BOARD_SIZE * BOARD_SIZE) - BOARD_SIZE - 1
+    }
+
+    #[inline]
+    pub fn is_bottom_edge(&self) -> bool {
+        (*self as usize) < BOARD_SIZE
     }
 }
 
@@ -298,14 +348,31 @@ pub struct Piece {
 }
 
 impl Piece {
-    pub fn to_letter(&self) -> Option<char> {
+    pub fn to_notation_letter(&self) -> Option<char> {
         match self.kind {
-            PieceKind::Rook => Some('R'),
-            PieceKind::Bishop => Some('B'),
-            PieceKind::Queen => Some('Q'),
-            PieceKind::King => Some('K'),
-            PieceKind::Knight => Some('N'),
+            PieceKind::Rook => Some('r'),
+            PieceKind::Bishop => Some('b'),
+            PieceKind::Queen => Some('q'),
+            PieceKind::King => Some('k'),
+            PieceKind::Knight => Some('n'),
             PieceKind::Pawn => None,
+        }
+    }
+
+    pub fn to_letter(&self) -> char {
+        let letter = match self.kind {
+            PieceKind::Rook => 'r',
+            PieceKind::Bishop => 'b',
+            PieceKind::Queen => 'q',
+            PieceKind::King => 'k',
+            PieceKind::Knight => 'n',
+            PieceKind::Pawn => 'p',
+        };
+        if self.colour == PieceColour::White {
+            letter.to_ascii_uppercase()
+        }
+        else {
+            letter
         }
     }
 }
@@ -338,10 +405,22 @@ mod tests {
 
     #[test]
     fn moves_from_back_rank() {
-        assert_eq!(Square::moves_from_back_rank(&Square::A1, &PieceColour::White), 0);
-        assert_eq!(Square::moves_from_back_rank(&Square::A1, &PieceColour::Black), 7);
-        assert_eq!(Square::moves_from_back_rank(&Square::E4, &PieceColour::White), 3);
-        assert_eq!(Square::moves_from_back_rank(&Square::G6, &PieceColour::Black), 2);
+        assert_eq!(
+            Square::moves_from_back_rank(&Square::A1, &PieceColour::White),
+            0
+        );
+        assert_eq!(
+            Square::moves_from_back_rank(&Square::A1, &PieceColour::Black),
+            7
+        );
+        assert_eq!(
+            Square::moves_from_back_rank(&Square::E4, &PieceColour::White),
+            3
+        );
+        assert_eq!(
+            Square::moves_from_back_rank(&Square::G6, &PieceColour::Black),
+            2
+        );
     }
 
     #[test]
@@ -363,9 +442,12 @@ mod tests {
         assert_eq!(Square::E5.moves_from_center(), 0);
         assert_eq!(Square::D4.moves_from_center(), 0);
         assert_eq!(Square::D5.moves_from_center(), 0);
+        assert_eq!(Square::B5.moves_from_center(), 2);
+        assert_eq!(Square::D6.moves_from_center(), 1);
         assert_eq!(Square::H1.moves_from_center(), 3);
         assert_eq!(Square::H8.moves_from_center(), 3);
         assert_eq!(Square::A1.moves_from_center(), 3);
+        assert_eq!(Square::A2.moves_from_center(), 3);
         assert_eq!(Square::A8.moves_from_center(), 3);
     }
 
@@ -381,5 +463,32 @@ mod tests {
         assert_eq!(Square::from_str("A11"), None);
         assert_eq!(Square::from_str("A9"), None);
         assert_eq!(Square::from_str("I5"), None);
+    }
+
+    #[test]
+    fn starting_square() {
+        use PieceColour::*;
+        use PieceKind::*;
+        assert!(Square::A1.is_starting_square(Rook, White));
+        assert!(Square::B1.is_starting_square(Knight, White));
+        assert!(Square::C1.is_starting_square(Bishop, White));
+        assert!(Square::D1.is_starting_square(Queen, White));
+        assert!(Square::E1.is_starting_square(King, White));
+        assert!(Square::A2.is_starting_square(Pawn, White));
+        assert!(Square::B2.is_starting_square(Pawn, White));
+        assert!(Square::C2.is_starting_square(Pawn, White));
+        assert!(Square::D2.is_starting_square(Pawn, White));
+        assert!(Square::E2.is_starting_square(Pawn, White));
+        //
+        assert!(Square::A8.is_starting_square(Rook, Black));
+        assert!(Square::B8.is_starting_square(Knight, Black));
+        assert!(Square::C8.is_starting_square(Bishop, Black));
+        assert!(Square::D8.is_starting_square(Queen, Black));
+        assert!(Square::E8.is_starting_square(King, Black));
+        assert!(Square::A7.is_starting_square(Pawn, Black));
+        assert!(Square::B7.is_starting_square(Pawn, Black));
+        assert!(Square::C7.is_starting_square(Pawn, Black));
+        assert!(Square::D7.is_starting_square(Pawn, Black));
+        assert!(Square::E7.is_starting_square(Pawn, Black));
     }
 }

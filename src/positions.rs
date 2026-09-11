@@ -2,7 +2,7 @@ use crate::*;
 
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Position {
-    pub squares: [SquareValue; 64],
+    pub squares: [SquareValue; moves::BOARD_SIZE.pow(2)],
     pub white_to_move: bool,
     pub castle_availability: Vec<CastleAvailability>,
     pub en_passant_square: Option<Square>,
@@ -47,6 +47,57 @@ impl Position {
     pub fn square_is_occupied(&self, square: Square) -> bool {
         self.squares[square as usize].is_occupied()
     }
+
+    pub fn piece_at(&self, square: Square) -> Option<Piece> {
+        match self.squares[square as usize] {
+            SquareValue::Occupied(p) => Some(p),
+            SquareValue::Empty => None,
+        }
+    }
+
+    pub fn display(&self) -> String {
+        /*
+        looks like this:
+        |---|---|---|---|---|---|---|---|\n
+        | r | n | b | q | k | b | n | r |\n
+        |---|---|---|---|---|---|---|---|\n
+        | p | p | p | p | p | p | p | p |\n
+        ...
+        White to move / kKqQ / 0
+        34 width * 17 height
+         */
+        let size = moves::BOARD_SIZE;
+        // newline + ending bar + 4 per square
+        let out_width = 1 + 1 + 4 * size;
+        // ending bar + 2 per square
+        let out_height = 1 + 2 * size;
+        let str_size: usize = out_width * out_height;
+        let mut out = String::with_capacity(str_size);
+        for y in 1..=size {
+            // divider
+            for _ in 1..=size {
+                out.push_str("|---");
+            }
+            out.push_str("|\n");
+            out.push_str("");
+            for x in 1..=size {
+                out.push_str("| ");
+                let piece = self.piece_at(Square::from_coords(x, y));
+                out.push(match piece {
+                    None => ' ',
+                    Some(p) => p.to_letter(),
+                });
+                out.push(' ');
+            }
+            out.push_str("|\n");
+        }
+        // final divider
+        for _ in 1..=size {
+            out.push_str("|---");
+        }
+        out.push_str("|\n");
+        return out;
+    }
 }
 
 impl PartialOrd for PositionEval {
@@ -65,7 +116,7 @@ impl PartialOrd for PositionEval {
             (MateForBlack(_), _) => Some(Less),
 
             (Undecided(s1), Undecided(s2)) => s1.partial_cmp(s2),
-            (Undecided(s1), GameFinished(s2)) => s1.partial_cmp(&(*s2 as i32 as f32)),
+            (Undecided(s1), GameFinished(s2)) => s1.partial_cmp(&(*s2 as i32 as f32)), // dbl cast is needed
 
             (b, a) => a.partial_cmp(b).map(|ord| ord.reverse()),
         }
