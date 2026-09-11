@@ -1,7 +1,41 @@
 use crate::*;
 use std::cmp::min;
 
-const BOARD_SIZE: usize = 8;
+pub(crate) const BOARD_SIZE: usize = 8;
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct Move {
+    pub from_square: Square,
+    pub to_square: Square,
+}
+
+impl PartialOrd for Move {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match self.from_square.partial_cmp(&other.from_square) {
+            Some(core::cmp::Ordering::Equal) => {}
+            ord => return ord,
+        }
+        self.to_square.partial_cmp(&other.to_square)
+    }
+}
+
+impl Ord for Move {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).expect("failed to order some moves")
+    }
+}
+
+impl Display for Move {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}{}", self.from_square, self.to_square)
+    }
+}
+
+impl Debug for Move {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}{}", self.from_square, self.to_square)
+    }
+}
 
 pub fn get_squares_with_pieces(position: &Position, for_player: &PieceColour) -> Vec<Square> {
     let mut out: Vec<Square> = vec![];
@@ -26,7 +60,8 @@ pub fn find_avail_moves_for_player(position: &Position, to_move: &PieceColour) -
     let mut moves: Vec<Move> = vec![];
     for sq in get_squares_with_pieces(position, &position.whos_move()) {
         moves.extend(
-            find_avail_moves_for_piece(position, sq).expect("tried to find available moves for a piece that doesn't exist"),
+            find_avail_moves_for_piece(position, sq)
+                .expect("tried to find available moves for a piece that doesn't exist"),
         );
     }
     moves
@@ -58,6 +93,7 @@ fn get_steps_in_direction(square: usize, step_x: isize, step_y: isize) -> Vec<is
 pub fn get_move_pattern(piece: PieceKind) -> Vec<isize> {
     use PieceKind::*;
     let size = BOARD_SIZE as isize;
+    // TODO: knight and king need fixing, will go off the board
     match piece {
         King => vec![1, -1, size, -size, size - 1, -size - 1, size + 1, -size + 1],
         Knight => vec![
@@ -79,8 +115,11 @@ pub fn get_move_pattern(piece: PieceKind) -> Vec<isize> {
     }
 }
 
-/// Finds moves that the piece would be able to make, doesn't look for king in check, etc.
-pub fn find_avail_moves_for_piece(position: &Position, location_of_piece: Square) -> Option<Vec<Move>> {
+/// Finds moves that the piece would be able to make, doesn't look for pieces blocking, king in check, etc.
+pub fn find_avail_moves_for_piece(
+    position: &Position,
+    location_of_piece: Square,
+) -> Option<Vec<Move>> {
     use PieceColour::*;
     use PieceKind::*;
     let sqvalue = position.squares[location_of_piece as usize];
@@ -137,13 +176,14 @@ pub fn find_avail_moves_for_piece(position: &Position, location_of_piece: Square
                 }
             }
         }
-        _ => add_indices(get_move_pattern(my_kind)),
+        _ => add_offsets(&get_move_pattern(my_kind, location_of_piece)),
     }
     return Some(moves);
 }
 
 pub fn move_is_valid(position: &Position, themove: &Move) -> bool {
     let piece_is_there = position.squares[themove.from_square as usize].is_occupied();
+    // FIXME: inefficient probably
     let piece_can_move_like_that = find_avail_moves_for_piece(position, themove.from_square)
         .expect("tried to find available moves for a piece that doesn't exist")
         .contains(themove);
@@ -164,7 +204,12 @@ pub fn apply_move(position: &Position, themove: &Move) -> Position {
 
 #[cfg(test)]
 mod tests {
-    use crate::*;
+    use crate::{
+        moves::{BOARD_SIZE, get_steps_in_direction},
+        square::Square::*,
+        *,
+    };
+
     #[test]
     fn valid_moves() {
         assert!(move_is_valid(
@@ -177,33 +222,90 @@ mod tests {
     }
 
     #[test]
-    fn test_find_king_moves() {
-        let pos = fen::parse("8/8/8/3K4/8/8/8/8 w - - 0 1");
+    fn find_king_moves() {
+        let king_in_middle = fen::parse("8/8/8/3K4/8/8/8/8 w - - 0 1");
+        let king_in_corner = fen::parse("8/8/8/8/8/8/8/K7 w - - 0 1");
         let piece = Piece {
             kind: PieceKind::King,
             colour: PieceColour::White,
         };
-        let from_square = Square::D5;
 
-        let mut expected_moves: Vec<Move> = vec![
-            Square::D4,
-            Square::D6,
-            Square::E4,
-            Square::E5,
-            Square::E6,
-            Square::C4,
-            Square::C5,
-            Square::C6,
-        ]
-        .iter()
-        .map(|sq| Move {
-            from_square,
-            to_square: *sq,
-        })
-        .collect::<Vec<Move>>();
-        expected_moves.sort();
-        let mut result = moves::find_avail_moves_for_piece(&pos, from_square).unwrap();
-        result.sort();
-        assert_eq!(result, expected_moves);
+        let mut expected_moves_corner: Vec<Move> = vec![A2, B2, B1]
+            .iter()
+            .map(|sq| Move {
+                from_square: A1,
+                to_square: *sq,
+            })
+            .collect::<Vec<Move>>();
+        let mut expected_moves_middle: Vec<Move> = vec![D4, D6, E4, E5, E6, C4, C5, C6]
+            .iter()
+            .map(|sq| Move {
+                from_square: D5,
+                to_square: *sq,
+            })
+            .collect::<Vec<Move>>();
+        expected_moves_middle.sort();
+        expected_moves_corner.sort();
+        let mut result_middle = moves::find_avail_moves_for_piece(&king_in_middle, D5).unwrap();
+        result_middle.sort();
+        let mut result_corner = moves::find_avail_moves_for_piece(&king_in_corner, A1).unwrap();
+        result_corner.sort();
+        assert_eq!(result_middle, expected_moves_middle);
+        assert_eq!(result_corner, expected_moves_corner);
+    }
+
+    #[test]
+    fn test_is_edge_square() {
+        assert!(Square::from_u8(0).is_bottom_edge());
+        assert!(Square::from_u8(1).is_edge_square());
+        assert!(Square::from_u8(2).is_edge_square());
+        assert!(Square::from_u8(3).is_bottom_edge());
+        assert!(Square::from_u8(4).is_edge_square());
+        assert!(Square::from_u8(5).is_edge_square());
+        assert!(Square::from_u8(6).is_edge_square());
+        assert!(Square::from_u8(7).is_edge_square());
+        assert!(Square::from_u8(8).is_edge_square());
+        assert!(Square::from_u8(15).is_right_edge());
+        assert!(Square::from_u8(16).is_edge_square());
+        assert!(Square::from_u8(23).is_edge_square());
+        assert!(Square::from_u8(24).is_edge_square());
+        assert!(Square::from_u8(31).is_edge_square());
+        assert!(Square::from_u8(32).is_edge_square());
+        assert!(Square::from_u8(39).is_edge_square());
+        assert!(Square::from_u8(40).is_edge_square());
+        assert!(Square::from_u8(47).is_edge_square());
+        assert!(Square::from_u8(48).is_edge_square());
+        assert!(Square::from_u8(55).is_edge_square());
+        assert!(Square::from_u8(56).is_edge_square());
+        assert!(Square::from_u8(57).is_edge_square());
+        assert!(Square::from_u8(58).is_top_edge());
+        assert!(Square::from_u8(59).is_top_edge());
+        assert!(Square::from_u8(60).is_top_edge());
+        assert!(Square::from_u8(61).is_top_edge());
+        assert!(Square::from_u8(62).is_top_edge());
+        assert!(Square::from_u8(63).is_top_edge());
+        //
+        assert!(!Square::from_u8(09).is_edge_square());
+        assert!(!Square::from_u8(10).is_edge_square());
+        assert!(!Square::from_u8(11).is_edge_square());
+        assert!(!Square::from_u8(12).is_edge_square());
+        assert!(!Square::from_u8(42).is_edge_square());
+        assert!(!Square::from_u8(54).is_edge_square());
+        assert!(!Square::from_u8(42).is_edge_square());
+        assert!(!Square::from_u8(49).is_edge_square());
+        assert!(!Square::from_u8(33).is_edge_square());
+        assert!(!Square::from_u8(38).is_edge_square());
+        assert!(!Square::from_u8(14).is_edge_square());
+    }
+
+    #[test]
+    fn test_get_steps_in_direction() {
+        let size = BOARD_SIZE as isize;
+
+        let square = Square::A1;
+        let (step_x, step_y) = (1, 1);
+        let diff = size * step_y + step_x;
+        let steps: Vec<isize> = (1..=7).map(|i| i * diff).collect();
+        assert_eq!(get_steps_in_direction(square, step_x, step_y), steps);
     }
 }
