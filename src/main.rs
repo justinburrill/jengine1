@@ -1,7 +1,6 @@
 #![allow(dead_code, unused_variables)]
 use clap::Parser;
 use std::fmt::{Debug, Display};
-use std::io::{self, BufRead};
 
 pub mod evaluation;
 pub mod fen;
@@ -13,6 +12,7 @@ pub mod positions;
 pub use positions::*;
 pub mod square;
 pub use square::*;
+pub mod interactive_mode;
 
 #[derive(Clone, PartialEq, Eq, Debug, clap::Subcommand)]
 enum EngineMode {
@@ -29,17 +29,13 @@ struct CLIArgs {
 }
 
 fn main() {
-    let stdin = io::stdin();
     let args = CLIArgs::parse();
     match args.mode {
         EngineMode::Evaluate { position, depth } => {
             let eval = evaluation::evaluate_position(&fen::parse(&position), depth);
             println!("{}", eval);
         }
-        EngineMode::Interactive => todo!("Interactive mode is not ready yet."),
+        EngineMode::Interactive => interactive_mode::handle_interactive(),
         EngineMode::UCI => todo!("UCI yet is not ready yet."),
-    }
-    for input_ in stdin.lock().lines() {
-        let input_line = input_.unwrap();
     }
 }
