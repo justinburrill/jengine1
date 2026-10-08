@@ -33,8 +33,26 @@ impl Position {
         return None;
     }
 
-    pub fn apply_move(&mut self, themove: &Move) {
-        *self = apply_move(&self, themove);
+    /// Doesn't check if the piece can move like that, nor does it test for check.
+    pub fn apply_move(&mut self, themove: &Move) -> Result<(), &str> {
+        // *self = apply_move(&self, themove);
+        if let Some(moving_piece) = self.piece_at(themove.from_square) {
+            if moving_piece.colour != self.whos_move() {
+                Err("Can't move enemy piece")
+            } else {
+                if let Some(capture_piece) = self.piece_at(themove.to_square) {
+                    if capture_piece.colour == moving_piece.colour {
+                        return Err("Can't capture friendly piece");
+                    }
+                }
+                self.squares[themove.from_square as usize] = no!();
+                self.squares[themove.to_square as usize] = SquareValue::Occupied(moving_piece);
+                self.white_to_move = !self.white_to_move;
+                return Ok(());
+            }
+        } else {
+            Err("No piece at that square")
+        }
     }
 
     pub fn count_pieces(&self) -> u8 {
@@ -55,47 +73,90 @@ impl Position {
         }
     }
 
-    pub fn display(&self) -> String {
+    pub fn display(&self, from_perspective: PieceColour) -> String {
         /*
         looks like this:
         |---|---|---|---|---|---|---|---|\n
-        | r | n | b | q | k | b | n | r |\n
+        | r | n | b | q | k | b | n | r | 8\n
         |---|---|---|---|---|---|---|---|\n
-        | p | p | p | p | p | p | p | p |\n
+        | p | p | p | p | p | p | p | p | 7\n
         ...
-        White to move / kKqQ / 0
         34 width * 17 height
          */
+        let black_perspective = from_perspective == PieceColour::Black;
         let size = moves::BOARD_SIZE;
         // newline + ending bar + 4 per square
         let out_width = 1 + 1 + 4 * size;
         // ending bar + 2 per square
         let out_height = 1 + 2 * size;
-        let str_size: usize = out_width * out_height;
+        let status_str = &format!(
+            "Move {}: {} to move\n",
+            self.full_move_count,
+            self.whos_move().to_string()
+        );
+        let white_str = "WHITE\n";
+        let black_str = "black\n";
+        let extra_squares_for_coords = 16;
+        let str_size: usize = out_width * out_height
+            + status_str.len()
+            + white_str.len()
+            + black_str.len()
+            + extra_squares_for_coords
+            + out_width;
         let mut out = String::with_capacity(str_size);
-        for y in 1..=size {
+        out.push_str(if black_perspective {
+            white_str
+        } else {
+            black_str
+        });
+        // IMPROVE: iterators
+        let row_iter: Vec<usize> = if black_perspective {
+            (1..=size).collect()
+        } else {
+            (1..=size).rev().collect()
+        };
+        let col_iter: Vec<usize> = if black_perspective {
+            (1..=size).rev().collect()
+        } else {
+            (1..=size).collect()
+        };
+        for y in row_iter {
             // divider
             for _ in 1..=size {
                 out.push_str("|---");
             }
             out.push_str("|\n");
             out.push_str("");
-            for x in 1..=size {
+            for x in &col_iter {
                 out.push_str("| ");
-                let piece = self.piece_at(Square::from_coords(x, y));
+                let piece = self.piece_at(Square::from_coords(*x, y));
                 out.push(match piece {
                     None => ' ',
                     Some(p) => p.to_letter(),
                 });
                 out.push(' ');
             }
-            out.push_str("|\n");
+            let coord_letter = size - y;
+            out.push_str(&format!("| {}\n", y));
         }
         // final divider
         for _ in 1..=size {
             out.push_str("|---");
         }
         out.push_str("|\n");
+        out.push('\n');
+        let letter_offset = 'a' as u8 - 1;
+        for i in &col_iter {
+            let letter: char = char::from(*i as u8 + letter_offset);
+            out.push_str(&format!("  {} ", letter));
+        }
+        out.push('\n');
+        out.push_str(if black_perspective {
+            black_str
+        } else {
+            white_str
+        });
+        out.push_str(status_str);
         return out;
     }
 }
@@ -147,7 +208,8 @@ impl Display for PositionEval {
             match self {
                 PositionEval::MateForWhite(n) => format!("Mate for white in {} moves.", n),
                 PositionEval::MateForBlack(n) => format!("Mate for black in {} moves.", n),
-                PositionEval::Undecided(score) => format!("Position has an evaluation of {}.", score),
+                PositionEval::Undecided(score) =>
+                    format!("Position has an evaluation of {}.", score),
                 PositionEval::GameFinished(state) => match state {
                     FinishedState::Stalemate => format!("The position is a stalemate."),
                     FinishedState::WhiteVictory => format!("The position checkmate for white."),
