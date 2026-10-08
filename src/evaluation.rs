@@ -1,41 +1,34 @@
 use crate::moves;
 use crate::*;
 
-pub fn is_king_in_check(position: &Position, which_king: &PieceColour) -> bool {
-    // FIXME: will be really inefficient
-    let available_moves = moves::find_avail_moves(position);
-    let enemy_king_square = position
+// TODO: best way to do this?
+pub fn is_king_in_check(position: &Position, which_king: PieceColour) -> bool {
+    let king_square = position
         .find_piece(&Piece {
             kind: PieceKind::King,
-            colour: *which_king,
+            colour: which_king,
         })
-        .expect("No enemy king on board");
-    for Move {
-        from_square,
-        to_square,
-    } in available_moves
-    {
-        if to_square == enemy_king_square {
-            return true;
-        }
-    }
-    return false;
+        .expect(&format!(
+            "No {} king on board, can't test for check.",
+            which_king
+        )); // maybe just return false?
+    todo!()
 }
 
 /// Check to see if a position is currently a checkmate
 pub fn check_for_mate(position: &Position) -> Option<FinishedState> {
-    // FIXME: Don't run find_available_moves all the time... maybe store in Position struct?
-    // or a PositionWithMoves struct?
-    if check_if_mated(position, &PieceColour::White) {
+    if check_if_mated(position, PieceColour::White) {
         Some(FinishedState::BlackVictory)
-    } else if check_if_mated(position, &PieceColour::Black) {
+    } else if check_if_mated(position, PieceColour::Black) {
         Some(FinishedState::WhiteVictory)
     } else {
         None
     }
 }
 
-pub fn check_if_mated(position: &Position, which_king: &PieceColour) -> bool {
+// FIXME: Don't run find_available_moves all the time... maybe store in Position struct?
+// or a PositionWithMoves struct?
+pub fn check_if_mated(position: &Position, which_king: PieceColour) -> bool {
     is_king_in_check(position, which_king)
         && moves::find_avail_moves_for_player(position, which_king).len() == 0
 }
@@ -100,6 +93,7 @@ pub fn evaluate_adjusted_material_difference(position: &Position) -> f32 {
 }
 
 pub fn evaluate_position(position: &Position, depth: usize) -> PositionEval {
+    // IMPROVE: only check for mate for one colour (person who just moved can't be mated)
     match check_for_mate(position) {
         None => {
             if depth == 0 {
@@ -110,7 +104,9 @@ pub fn evaluate_position(position: &Position, depth: usize) -> PositionEval {
                 let mut positions: Vec<(Move, Position)> = Vec::with_capacity(moves.len());
                 for move_ in moves {
                     let mut nextpos = position.clone();
-                    moves::apply_move(&mut nextpos, &move_);
+                    if let Err(result) = nextpos.apply_move(&move_) {
+                        panic!("Failed to apply move: {}", result);
+                    }
                     positions.push((move_, nextpos));
                 }
                 let (move_, eval, resulting_pos) = positions
@@ -248,8 +244,8 @@ mod tests {
         #[test]
         fn test_king_in_check() {
             let pos = fen::parse("rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3");
-            assert!(evaluation::is_king_in_check(&pos, &PieceColour::White));
-            assert!(!evaluation::is_king_in_check(&pos, &PieceColour::Black));
+            assert!(evaluation::is_king_in_check(&pos, PieceColour::White));
+            assert!(!evaluation::is_king_in_check(&pos, PieceColour::Black));
         }
     }
 
