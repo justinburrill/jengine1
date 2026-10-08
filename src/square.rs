@@ -71,9 +71,9 @@ pub enum Square {
 
 impl Square {
     /// Returns (x, y) from white's bottom left corner, (1, 1)-based
-    pub fn to_coords(&self) -> (u8, u8) {
-        let board_size = moves::BOARD_SIZE as u8;
-        let idx = *self as u8;
+    pub fn to_coords(&self) -> (usize, usize) {
+        let board_size = moves::BOARD_SIZE as usize;
+        let idx = *self as usize;
         let y = idx / board_size;
         let x = idx - (y * board_size);
         (x + 1, y + 1)
@@ -96,7 +96,7 @@ impl Square {
     }
 
     pub fn from_isize(int: isize) -> Square {
-        Square::from_usize(int.try_into().unwrap())
+        Square::from_usize(int.try_into().expect("int should be within usize range"))
     }
 
     pub fn from_str(string: &str) -> Option<Square> {
@@ -123,13 +123,13 @@ impl Square {
     /// Returns the square across the board.
     pub fn mirror_opposite(&self) -> Square {
         let (x, y) = self.to_coords();
-        Square::from_coords_u8(x, opposite_row(y))
+        Square::from_coords(x, opposite_row(y))
     }
 
     /// Returns square that is a 180deg rotation from this square.
     pub fn pivot_opposite(&self) -> Square {
         let (x, y) = self.to_coords();
-        Square::from_coords_u8(opposite_row(x), opposite_row(y))
+        Square::from_coords(opposite_row(x), opposite_row(y))
     }
 
     pub fn moves_from_back_rank(&self, colour: &PieceColour) -> u8 {
@@ -276,7 +276,7 @@ impl Display for Square {
 }
 
 #[inline]
-fn opposite_row(row: u8) -> u8 {
+fn opposite_row(row: usize) -> usize {
     9 - row
 }
 
@@ -332,6 +332,19 @@ pub enum PieceColour {
     Black,
 }
 
+impl Display for PieceColour {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                PieceColour::White => "White",
+                PieceColour::Black => "Black",
+            }
+        )
+    }
+}
+
 impl PieceColour {
     pub fn other(self: &PieceColour) -> PieceColour {
         match self {
@@ -370,8 +383,7 @@ impl Piece {
         };
         if self.colour == PieceColour::White {
             letter.to_ascii_uppercase()
-        }
-        else {
+        } else {
             letter
         }
     }
@@ -490,5 +502,49 @@ mod tests {
         assert!(Square::C7.is_starting_square(Pawn, Black));
         assert!(Square::D7.is_starting_square(Pawn, Black));
         assert!(Square::E7.is_starting_square(Pawn, Black));
+    }
+
+    #[test]
+    fn test_is_edge_square() {
+        assert!(Square::from_u8(0).is_bottom_edge());
+        assert!(Square::from_u8(1).is_edge_square());
+        assert!(Square::from_u8(2).is_edge_square());
+        assert!(Square::from_u8(3).is_bottom_edge());
+        assert!(Square::from_u8(4).is_edge_square());
+        assert!(Square::from_u8(5).is_edge_square());
+        assert!(Square::from_u8(6).is_edge_square());
+        assert!(Square::from_u8(7).is_edge_square());
+        assert!(Square::from_u8(8).is_edge_square());
+        assert!(Square::from_u8(15).is_right_edge());
+        assert!(Square::from_u8(16).is_edge_square());
+        assert!(Square::from_u8(23).is_edge_square());
+        assert!(Square::from_u8(24).is_edge_square());
+        assert!(Square::from_u8(31).is_edge_square());
+        assert!(Square::from_u8(32).is_edge_square());
+        assert!(Square::from_u8(39).is_edge_square());
+        assert!(Square::from_u8(40).is_edge_square());
+        assert!(Square::from_u8(47).is_edge_square());
+        assert!(Square::from_u8(48).is_edge_square());
+        assert!(Square::from_u8(55).is_edge_square());
+        assert!(Square::from_u8(56).is_edge_square());
+        assert!(Square::from_u8(57).is_edge_square());
+        assert!(Square::from_u8(58).is_top_edge());
+        assert!(Square::from_u8(59).is_top_edge());
+        assert!(Square::from_u8(60).is_top_edge());
+        assert!(Square::from_u8(61).is_top_edge());
+        assert!(Square::from_u8(62).is_top_edge());
+        assert!(Square::from_u8(63).is_top_edge());
+        //
+        assert!(!Square::from_u8(09).is_edge_square());
+        assert!(!Square::from_u8(10).is_edge_square());
+        assert!(!Square::from_u8(11).is_edge_square());
+        assert!(!Square::from_u8(12).is_edge_square());
+        assert!(!Square::from_u8(42).is_edge_square());
+        assert!(!Square::from_u8(54).is_edge_square());
+        assert!(!Square::from_u8(42).is_edge_square());
+        assert!(!Square::from_u8(49).is_edge_square());
+        assert!(!Square::from_u8(33).is_edge_square());
+        assert!(!Square::from_u8(38).is_edge_square());
+        assert!(!Square::from_u8(14).is_edge_square());
     }
 }
