@@ -96,7 +96,10 @@ impl Square {
     }
 
     pub fn from_isize(int: isize) -> Square {
-        Square::from_usize(int.try_into().expect("int should be within usize range"))
+        Square::from_usize(
+            int.try_into()
+                .expect(format!("Can't create a square from int {int}: should be within usize range").as_str()),
+        )
     }
 
     pub fn from_str(string: &str) -> Option<Square> {
@@ -106,9 +109,7 @@ impl Square {
         let mut chars = string.chars();
         let col_s: char = chars.next().unwrap();
         let row_s: char = chars.next().unwrap();
-        if !(('a'..='h').contains(&col_s) || ('A'..='H').contains(&col_s))
-            || !('1'..='8').contains(&row_s)
-        {
+        if !(('a'..='h').contains(&col_s) || ('A'..='H').contains(&col_s)) || !('1'..='8').contains(&row_s) {
             return None;
         }
         let col: u8 = if col_s.is_ascii_uppercase() {
@@ -135,9 +136,7 @@ impl Square {
     pub fn moves_from_back_rank(&self, colour: &PieceColour) -> u8 {
         match colour {
             PieceColour::White => *self as u8 / 8,
-            PieceColour::Black => self
-                .pivot_opposite()
-                .moves_from_back_rank(&PieceColour::White),
+            PieceColour::Black => self.pivot_opposite().moves_from_back_rank(&PieceColour::White),
         }
     }
 
@@ -160,9 +159,7 @@ impl Square {
 
     pub fn is_starting_square(&self, piece: PieceKind, colour: PieceColour) -> bool {
         if colour == PieceColour::Black {
-            return self
-                .mirror_opposite()
-                .is_starting_square(piece, PieceColour::White);
+            return self.mirror_opposite().is_starting_square(piece, PieceColour::White);
         } else {
             return match piece {
                 PieceKind::Pawn => self >= &Square::A2 && self <= &Square::H2,
@@ -417,22 +414,10 @@ mod tests {
 
     #[test]
     fn moves_from_back_rank() {
-        assert_eq!(
-            Square::moves_from_back_rank(&Square::A1, &PieceColour::White),
-            0
-        );
-        assert_eq!(
-            Square::moves_from_back_rank(&Square::A1, &PieceColour::Black),
-            7
-        );
-        assert_eq!(
-            Square::moves_from_back_rank(&Square::E4, &PieceColour::White),
-            3
-        );
-        assert_eq!(
-            Square::moves_from_back_rank(&Square::G6, &PieceColour::Black),
-            2
-        );
+        assert_eq!(Square::moves_from_back_rank(&Square::A1, &PieceColour::White), 0);
+        assert_eq!(Square::moves_from_back_rank(&Square::A1, &PieceColour::Black), 7);
+        assert_eq!(Square::moves_from_back_rank(&Square::E4, &PieceColour::White), 3);
+        assert_eq!(Square::moves_from_back_rank(&Square::G6, &PieceColour::Black), 2);
     }
 
     #[test]

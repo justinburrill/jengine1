@@ -1,4 +1,15 @@
 #[macro_export]
+macro_rules! newmove {
+    ($s1:expr, $s2:expr) => {
+        Move {
+            from_square: $s1,
+            to_square: $s2,
+        }
+    };
+}
+
+
+#[macro_export]
 macro_rules! square_from_num {
     ($num:expr) => {
         match $num {
